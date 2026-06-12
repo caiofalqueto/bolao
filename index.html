@@ -17,7 +17,10 @@
     --g50:#F8FAF9;--g100:#EFF3F0;--g200:#DEE5DF;--g300:#B8C4BA;--g400:#7E8F80;--g500:#5A6B5C;--g700:#2D3E2F;--g900:#111;
     --radius:10px;--shadow:0 2px 8px rgba(0,0,0,.15);
   }
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--g900);line-height:1.5;min-height:100vh}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--g900);line-height:1.5;min-height:100vh;position:relative}
+  body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:url('fundo.png') center/cover no-repeat;opacity:.12;z-index:0;pointer-events:none}
+  body::after{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);opacity:.88;z-index:0;pointer-events:none}
+  header,.container{position:relative;z-index:1}
 
   /* ── Header ── */
   header{background:linear-gradient(135deg,#002E13 0%,#004D25 50%,#006B2B 100%);color:white;padding:32px 24px 28px;text-align:center;position:relative}
@@ -73,7 +76,7 @@
   .tbl td{padding:9px 10px;text-align:center;border-bottom:1px solid var(--g100);vertical-align:middle}
   .tbl tr:hover td{background:var(--green-light)}
   .tbl td.name-cell{text-align:left;font-weight:600}
-  .tbl td.sector-cell{text-align:left;color:var(--g500);font-size:.78rem;max-width:90px;word-wrap:break-word;white-space:normal}
+  .tbl td.sector-cell{text-align:left;color:var(--g500);font-size:.78rem;max-width:130px;overflow-wrap:break-word;word-break:break-word;white-space:normal;line-height:1.25}
   .tbl .pos-cell{font-weight:800;color:var(--g400);width:36px}
   .tbl .pos-cell.top1{color:var(--gold-dark)}
   .tbl .pos-cell.top2{color:#8C8C8C}
@@ -573,7 +576,7 @@ function renderRealResults(){
     try{
       const[d,mo]=String(m.date).split('/').map(Number);
       const[h,mi]=String(m.time).split(':').map(Number);
-      if(d&&mo){mDate=new Date(2026,mo-1,d);const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;if(!DATA.realMatchResults[m.num]&&diff>=0&&diff<=150)liveNums.add(m.num)}
+      if(d&&mo){mDate=new Date(2026,mo-1,d);const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;if(!DATA.realMatchResults[m.num]&&diff>=0&&diff<=120)liveNums.add(m.num)}
     }catch(e){}
     matchDates.push({match:m,date:mDate});
   }
@@ -643,7 +646,7 @@ function renderRanking(ranked){
     const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
     const posLabel=medals[pos]||`${pos}º`;
     const prize=prizes[pos]?`<strong style="color:${prizeColors[pos]}">${fmt(prizes[pos])}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell">${esc(p.name)}</td><td class="sector-cell">${esc(p.sector)}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell">${esc(p.name)}</td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
 }
