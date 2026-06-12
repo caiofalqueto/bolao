@@ -26,6 +26,18 @@
   header h1{font-size:2rem;font-weight:900;letter-spacing:.08em;color:var(--gold);text-shadow:0 2px 4px rgba(0,0,0,.3)}
   header p{font-size:.85rem;opacity:.75;margin-top:4px}
   .header-stars{font-size:.7rem;color:var(--gold);letter-spacing:6px;margin-bottom:4px}
+  .whatsapp-box{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .qr-desktop{display:block}
+  .qr-label{font-size:.6rem;color:rgba(255,255,255,.5);display:block}
+  .whatsapp-btn{display:inline-flex;align-items:center;gap:6px;background:#25D366;color:white;text-decoration:none;font-size:.78rem;font-weight:600;padding:6px 14px;border-radius:20px;transition:.2s}
+  .whatsapp-btn:hover{background:#1DA851}
+  @media(max-width:640px){
+    .qr-desktop,.qr-label{display:none!important}
+    .whatsapp-btn{font-size:.85rem;padding:8px 18px}
+  }
+  @media(min-width:641px){
+    .whatsapp-btn{font-size:.68rem;padding:4px 10px;opacity:.8}
+  }
 
   .container{max-width:1200px;margin:0 auto;padding:20px 16px}
 
@@ -92,7 +104,9 @@
   .result-row.r-live{background:rgba(255,215,0,.1)!important;border:1px solid rgba(255,215,0,.3)}
   .r-live-badge{font-size:.62rem;font-weight:700;color:#E53;background:rgba(229,51,51,.12);padding:2px 7px;border-radius:3px;animation:pulse 1.5s ease-in-out infinite;white-space:nowrap}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-  .sector-names{font-size:.72rem;color:var(--g400);font-style:italic;margin-top:2px}
+  .result-row.r-pending{background:rgba(192,57,43,.08)!important;border:1px solid rgba(192,57,43,.15)}
+  .result-row.r-pending .r-teams{color:var(--g400)}
+  .r-pending-badge{font-size:.62rem;font-weight:600;color:var(--g400);background:var(--g100);padding:2px 7px;border-radius:3px;white-space:nowrap}
   .minmax-cell{line-height:1.3}
   .minmax-cell .mm-score{font-weight:800;font-size:.88rem}
   .minmax-cell .mm-name{font-size:.66rem;color:var(--g400);font-style:italic}
@@ -140,9 +154,21 @@
 <body>
 
 <header>
-  <div class="header-stars">★ ★ ★ ★ ★</div>
-  <h1>BOLÃO</h1>
-  <p>Copa do Mundo 2026 · Dashboard de Pontuação</p>
+  <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap">
+    <div style="flex:1;text-align:center;min-width:200px">
+      <div class="header-stars">★ ★ ★ ★ ★</div>
+      <h1>BOLÃO</h1>
+      <p>Copa do Mundo 2026 · Dashboard de Pontuação</p>
+    </div>
+    <div class="whatsapp-box">
+      <img class="qr-desktop" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https%3A%2F%2Fchat.whatsapp.com%2FLQXD84c4wsl0w2PnApX2ud&bgcolor=004D25&color=FFFFFF" alt="QR Code WhatsApp" width="80" height="80" style="border-radius:6px">
+      <a class="whatsapp-btn" href="https://chat.whatsapp.com/LQXD84c4wsl0w2PnApX2ud" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.944 11.944 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.37 0-4.567-.82-6.3-2.189l-.44-.352-3.2 1.073 1.073-3.2-.352-.44A9.953 9.953 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+        Grupo do Bolão
+      </a>
+      <span class="qr-label">Escaneie para entrar no grupo</span>
+    </div>
+  </div>
 </header>
 
 <div class="container">
@@ -196,13 +222,22 @@
       <div class="card-body tbl-scroll" id="sectorBody"></div>
     </div>
 
-    <!-- Participant Detail -->
+    <!-- Detail Section -->
     <div class="card">
-      <div class="card-header"><h2>Detalhe do Participante</h2></div>
-      <div class="detail-selector">
-        <select id="participantSelect" onchange="renderDetail()">
-          <option value="">Selecione um participante...</option>
-        </select>
+      <div class="card-header"><h2>Detalhe do Participante ou Disciplina</h2></div>
+      <div class="detail-selector" style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label style="font-size:.72rem;color:var(--g500);text-transform:uppercase;font-weight:600;display:block;margin-bottom:4px">Participante</label>
+          <select id="participantSelect" onchange="document.getElementById('sectorSelect').value='';renderDetail()">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label style="font-size:.72rem;color:var(--g500);text-transform:uppercase;font-weight:600;display:block;margin-bottom:4px">Disciplina / Setor</label>
+          <select id="sectorSelect" onchange="document.getElementById('participantSelect').value='';renderSectorDetail()">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
       </div>
       <div id="detailContent" class="detail-content hidden"></div>
     </div>
@@ -471,7 +506,7 @@ function rankAll(data,all){
     if(b.exactScores!==a.exactScores)return b.exactScores-a.exactScores;
     if(b.correctDiffs!==a.correctDiffs)return b.correctDiffs-a.correctDiffs;
     if(b.exactGroups!==a.exactGroups)return b.exactGroups-a.exactGroups;
-    return 0;
+    return a.name.localeCompare(b.name,'pt-BR');
   });
   return ranked;
 }
@@ -518,7 +553,7 @@ function renderRealResults(){
 
   // Determine in-progress matches
   const now=new Date();
-  const liveMatches=[];
+  const liveNums=new Set();
   for(const m of DATA.matches){
     if(DATA.realMatchResults[m.num])continue;
     try{
@@ -527,31 +562,25 @@ function renderRealResults(){
       if(!d||!mo||isNaN(h))continue;
       const kick=new Date(2026,mo-1,d,h,mi);
       const diffMin=(now-kick)/60000;
-      if(diffMin>=0&&diffMin<=150)liveMatches.push(m);
+      if(diffMin>=0&&diffMin<=150)liveNums.add(m.num);
     }catch(e){}
   }
 
-  const liveCount=liveMatches.length;
-  document.getElementById('badgeMatches').textContent=`${mp} de 36`+(liveCount?` · ${liveCount} ao vivo`:'');
+  document.getElementById('badgeMatches').textContent=`${mp} de 36`+(liveNums.size?` · ${liveNums.size} ao vivo`:'');
   document.getElementById('badgeGroups').textContent=`${gd} de 12`;
 
-  // Build match list: live first, then played
-  const played=DATA.matches.filter(m=>DATA.realMatchResults[m.num]);
-  const allDisplay=[...liveMatches,...played];
-
-  if(allDisplay.length===0){document.getElementById('matchResultsBody').innerHTML='<div class="no-results">Nenhum placar preenchido.</div>'}
-  else{
-    const half=Math.ceil(allDisplay.length/2);
-    const col1=allDisplay.slice(0,half),col2=allDisplay.slice(half);
-    const renderRow=m=>{
-      const real=DATA.realMatchResults[m.num];
-      const isLive=!real&&liveMatches.includes(m);
-      if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
-      return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}</span></div>`;
-    };
-    const renderCol=list=>list.map(renderRow).join('');
-    document.getElementById('matchResultsBody').innerHTML=`<div class="results-grid"><div>${renderCol(col1)}</div><div>${renderCol(col2)}</div></div>`;
-  }
+  // Show ALL 36 matches
+  const half=Math.ceil(DATA.matches.length/2);
+  const col1=DATA.matches.slice(0,half),col2=DATA.matches.slice(half);
+  const renderRow=m=>{
+    const real=DATA.realMatchResults[m.num];
+    const isLive=liveNums.has(m.num);
+    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
+    if(real)return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}</span></div>`;
+    return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-pending-badge">PENDENTE</span></div>`;
+  };
+  const renderCol=list=>list.map(renderRow).join('');
+  document.getElementById('matchResultsBody').innerHTML=`<div class="results-grid"><div>${renderCol(col1)}</div><div>${renderCol(col2)}</div></div>`;
 
   // Group classifications — all 12 with aligned columns
   let gh='<div class="grp-card" style="border-bottom:2px solid var(--g200);padding:6px 14px"><span></span><span></span><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">1º COLOCADO</div><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">2º COLOCADO</div></div>';
@@ -638,9 +667,73 @@ function renderSectors(sectors){
 
 function populateSelect(ranked){
   const sel=document.getElementById('participantSelect');
-  sel.innerHTML='<option value="">Selecione um participante...</option>';
+  sel.innerHTML='<option value="">Selecione...</option>';
   const sorted=[...ranked].sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
   sorted.forEach(p=>{sel.innerHTML+=`<option value="${esc(p.name)}">${esc(p.name)} — ${p.totalPoints} pts</option>`});
+
+  // Populate sector dropdown
+  const secSel=document.getElementById('sectorSelect');
+  secSel.innerHTML='<option value="">Selecione...</option>';
+  const sectors=[...new Set(DATA.participants.map(p=>p.sector).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  sectors.forEach(s=>{secSel.innerHTML+=`<option value="${esc(s)}">${esc(s)}</option>`});
+}
+
+function renderSectorDetail(){
+  const sector=document.getElementById('sectorSelect').value;
+  const ct=document.getElementById('detailContent');
+  if(!sector||!RESULTS){ct.classList.add('hidden');return}
+  ct.classList.remove('hidden');
+
+  // Get all ranked participants in this sector
+  const members=RESULTS.ranked.filter(p=>p.sector===sector).sort((a,b)=>b.totalPoints-a.totalPoints);
+  if(!members.length){ct.innerHTML='<p style="color:var(--g400)">Nenhum participante neste setor.</p>';return}
+
+  const total=members.reduce((s,p)=>s+p.totalPoints,0);
+  const avg=total/members.length;
+  const best=members[0],worst=members[members.length-1];
+
+  let h=`<div class="detail-summary">
+    <div class="detail-stat"><div class="val">${members.length}</div><div class="lbl">Participantes</div></div>
+    <div class="detail-stat"><div class="val">${avg.toFixed(1)}</div><div class="lbl">Média</div></div>
+    <div class="detail-stat"><div class="val" style="color:var(--green-dark)">${best.totalPoints}</div><div class="lbl">Melhor (${esc(best.name.split(' ')[0])})</div></div>
+    <div class="detail-stat"><div class="val" style="color:var(--red)">${worst.totalPoints}</div><div class="lbl">Pior (${esc(worst.name.split(' ')[0])})</div></div>
+    <div class="detail-stat"><div class="val">${members.reduce((s,p)=>s+p.exactScores,0)}</div><div class="lbl">Exatos (total)</div></div>
+    <div class="detail-stat"><div class="val">${members.length>=4?'✓':'✗'}</div><div class="lbl">${members.length>=4?'Qualificado':'Mín. 4'}</div></div>
+  </div>`;
+
+  // Ranking table for sector members
+  h+='<div class="detail-section-title">Ranking do Setor</div>';
+  h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th>Total</th><th>Placares</th><th>Classif.</th><th>Exatos</th><th>Saldos</th><th>Autos</th></tr></thead><tbody>`;
+  members.forEach((p,i)=>{
+    const pc=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    h+=`<tr><td class="pos-cell ${pc}">${i+1}º</td><td class="name-cell">${esc(p.name)}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.autoCount}</td></tr>`;
+  });
+  h+='</tbody></table></div>';
+
+  // Match-by-match comparison
+  h+='<div class="detail-section-title">Desempenho por Jogo</div>';
+  h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Nº</th><th style="text-align:left">Jogo</th><th>Real</th>`;
+  members.forEach(p=>{h+=`<th>${esc(p.name.split(' ')[0])}</th>`});
+  h+='</tr></thead><tbody>';
+  for(const match of DATA.matches){
+    const m=match.num;
+    const real=DATA.realMatchResults[m];
+    if(!real)continue;
+    h+=`<tr><td>${m}</td><td class="match-cell">${esc(match.home)} × ${esc(match.away)}</td><td><strong>${real.home}×${real.away}</strong></td>`;
+    members.forEach(p=>{
+      const r=RESULTS.allResults[p.name];
+      const sc=r?r.matchScores[m]:null;
+      const det=r?r.matchDetails[m]:null;
+      if(!sc){h+='<td>—</td>';return}
+      const cls=sc.type==='exact'?'sc-exact':sc.type==='diff'?'sc-diff':sc.type==='winner'?'sc-winner':sc.type==='inherited'?'sc-inherited':'sc-wrong';
+      const betStr=(det&&det.betH!=null)?`${det.betH}×${det.betA}`:'—';
+      h+=`<td class="${cls}" title="${betStr}">${ptsBadge(sc.points,sc.type)}</td>`;
+    });
+    h+='</tr>';
+  }
+  h+='</tbody></table></div>';
+
+  ct.innerHTML=h;
 }
 
 function renderDetail(){
