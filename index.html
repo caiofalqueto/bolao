@@ -873,32 +873,48 @@ function avatarUrl(name,size){return`https://api.dicebear.com/9.x/bottts/svg?see
 // ═══ CRAQUE DA RODADA ═══
 function showCraque(){
   if(!DATA||!RESULTS)return;
-  // Find last 3 matches with results
   const playedNums=DATA.matches.filter(m=>DATA.realMatchResults[m.num]).map(m=>m.num);
   if(playedNums.length<1)return;
   const last3=playedNums.slice(-3);
 
   // Calculate points in last 3 for each participant
-  let bestName=null,bestPts=-1;
+  let bestPts=-1;
+  const scores=[];
   for(const p of DATA.participants){
     const r=RESULTS.allResults[p.name];if(!r)continue;
     let pts=0;
     for(const m of last3){const sc=r.matchScores[m];if(sc&&sc.type!=='inherited')pts+=sc.points}
-    if(pts>bestPts){bestPts=pts;bestName=p.name}
+    scores.push({name:p.name,pts});
+    if(pts>bestPts)bestPts=pts;
   }
-  if(!bestName||bestPts<=0)return;
+  if(bestPts<=0)return;
 
-  // Create modal
+  // All participants with the best score
+  const winners=scores.filter(s=>s.pts===bestPts);
+
   const overlay=document.createElement('div');
   overlay.className='craque-overlay';
   overlay.onclick=()=>{overlay.remove();clearConfetti()};
   const matchesDesc=last3.map(n=>{const m=DATA.matches.find(x=>x.num===n);return m?`${m.home} × ${m.away}`:''}).join(', ');
+  const title=winners.length>1?'CRAQUES DA RODADA':'CRAQUE DA RODADA';
+
+  let avatarsHtml='';
+  if(winners.length===1){
+    avatarsHtml=`<img class="avatar-xl" src="${avatarUrl(winners[0].name,80)}" alt="">
+      <div class="name">${esc(winners[0].name)}</div>`;
+  }else{
+    avatarsHtml='<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">';
+    for(const w of winners){
+      avatarsHtml+=`<div style="text-align:center"><img class="avatar-xl" src="${avatarUrl(w.name,80)}" alt="" style="margin:0 auto 4px"><div style="font-size:.85rem;font-weight:700">${esc(w.name.split(' ')[0])}</div></div>`;
+    }
+    avatarsHtml+='</div>';
+  }
+
   overlay.innerHTML=`<div class="craque-modal">
     <div class="stars">⭐ ⭐ ⭐</div>
     <div class="title">Destaque dos últimos ${last3.length} jogos</div>
-    <div class="subtitle">CRAQUE DA RODADA</div>
-    <img class="avatar-xl" src="${avatarUrl(bestName,80)}" alt="">
-    <div class="name">${esc(bestName)}</div>
+    <div class="subtitle">${title}</div>
+    ${avatarsHtml}
     <div class="score">${bestPts} pts</div>
     <div class="score-label">nos jogos: ${esc(matchesDesc)}</div>
     <div class="close-hint">Toque para fechar</div>
