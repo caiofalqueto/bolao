@@ -137,6 +137,27 @@
   .sector-qualified{color:var(--green-dark);font-weight:700}
   .sector-not-qualified{color:var(--g400);font-style:italic}
 
+  /* ── Avatars ── */
+  .avatar-img{width:32px;height:32px;border-radius:6px;background:var(--g100);vertical-align:middle}
+  .avatar-lg{width:56px;height:56px;border-radius:10px;background:var(--g100)}
+  .name-with-avatar{display:flex;align-items:center;gap:8px}
+
+  /* ── Craque Modal ── */
+  .craque-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s}
+  .craque-modal{background:linear-gradient(135deg,#004D25,#006B2B);border:2px solid var(--gold);border-radius:16px;padding:32px 40px;text-align:center;color:white;max-width:400px;width:90%;position:relative;animation:popIn .4s ease-out;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .craque-modal .stars{font-size:1.5rem;letter-spacing:8px;margin-bottom:8px}
+  .craque-modal .title{font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:4px}
+  .craque-modal .subtitle{font-size:1.4rem;font-weight:900;color:var(--gold);margin-bottom:16px}
+  .craque-modal .avatar-xl{width:80px;height:80px;border-radius:50%;background:white;padding:4px;margin:0 auto 12px;border:3px solid var(--gold)}
+  .craque-modal .name{font-size:1.2rem;font-weight:800;margin-bottom:4px}
+  .craque-modal .score{font-size:2rem;font-weight:900;color:var(--gold)}
+  .craque-modal .score-label{font-size:.75rem;color:rgba(255,255,255,.6);margin-bottom:16px}
+  .craque-modal .close-hint{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:12px}
+  .confetti{position:fixed;top:-10px;z-index:10000;pointer-events:none;animation:confettiFall linear forwards}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
   @media(max-width:640px){
     header h1{font-size:1.4rem;letter-spacing:.04em}
     .tbl{font-size:.76rem}.tbl th,.tbl td{padding:7px 5px}
@@ -539,6 +560,7 @@ function calculateAndRender(){
   const sectors=calcSectors(ranked,DATA.participants);
   RESULTS={allResults,autoBets,ranked,sectors};
   renderStats(ranked);renderRealResults();renderRanking(ranked);renderSectors(sectors);populateSelect(ranked);
+  if(!window._craqueShown){window._craqueShown=true;setTimeout(showCraque,1500)}
 }
 
 function renderStats(ranked){
@@ -645,7 +667,7 @@ function renderRanking(ranked){
     const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
     const posLabel=medals[pos]||`${pos}º`;
     const prize=prizes[pos]?`<strong style="color:${prizeColors[pos]}">${fmt(prizes[pos])}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell">${esc(p.name)}</td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
 }
@@ -782,7 +804,13 @@ function renderDetail(){
   const r=RESULTS.allResults[name],p=DATA.participants.find(p=>p.name===name);
   if(!r||!p){ct.innerHTML='<p>Não encontrado.</p>';return}
 
-  let h=`<div class="detail-summary">
+  let h=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+    <img class="avatar-lg" src="${avatarUrl(name,56)}" alt="">
+    <div><div style="font-size:1.1rem;font-weight:800;color:var(--green-dark)">${esc(name)}</div>
+    <div style="font-size:.8rem;color:var(--g500)">${esc(p.sector)}${p.entryRound>1?' · Late Joiner (Rd '+p.entryRound+')':''}</div></div>
+  </div>`;
+
+  h+=`<div class="detail-summary">
     <div class="detail-stat"><div class="val">${r.totalPoints}</div><div class="lbl">Total</div></div>
     <div class="detail-stat"><div class="val">${r.matchPoints}</div><div class="lbl">Placares</div></div>
     <div class="detail-stat"><div class="val">${r.groupPoints}</div><div class="lbl">Classif.</div></div>
@@ -839,6 +867,62 @@ function ptsBadge(pts,type){
   return`<span class="pts-badge ${c}">${pts}</span>`;
 }
 function esc(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+
+function avatarUrl(name,size){return`https://api.dicebear.com/9.x/bottts/svg?seed=${encodeURIComponent(name||'default')}&size=${size||32}`}
+
+// ═══ CRAQUE DA RODADA ═══
+function showCraque(){
+  if(!DATA||!RESULTS)return;
+  // Find last 3 matches with results
+  const playedNums=DATA.matches.filter(m=>DATA.realMatchResults[m.num]).map(m=>m.num);
+  if(playedNums.length<1)return;
+  const last3=playedNums.slice(-3);
+
+  // Calculate points in last 3 for each participant
+  let bestName=null,bestPts=-1;
+  for(const p of DATA.participants){
+    const r=RESULTS.allResults[p.name];if(!r)continue;
+    let pts=0;
+    for(const m of last3){const sc=r.matchScores[m];if(sc&&sc.type!=='inherited')pts+=sc.points}
+    if(pts>bestPts){bestPts=pts;bestName=p.name}
+  }
+  if(!bestName||bestPts<=0)return;
+
+  // Create modal
+  const overlay=document.createElement('div');
+  overlay.className='craque-overlay';
+  overlay.onclick=()=>{overlay.remove();clearConfetti()};
+  const matchesDesc=last3.map(n=>{const m=DATA.matches.find(x=>x.num===n);return m?`${m.home} × ${m.away}`:''}).join(', ');
+  overlay.innerHTML=`<div class="craque-modal">
+    <div class="stars">⭐ ⭐ ⭐</div>
+    <div class="title">Destaque dos últimos ${last3.length} jogos</div>
+    <div class="subtitle">CRAQUE DA RODADA</div>
+    <img class="avatar-xl" src="${avatarUrl(bestName,80)}" alt="">
+    <div class="name">${esc(bestName)}</div>
+    <div class="score">${bestPts} pts</div>
+    <div class="score-label">nos jogos: ${esc(matchesDesc)}</div>
+    <div class="close-hint">Toque para fechar</div>
+  </div>`;
+  document.body.appendChild(overlay);
+  launchConfetti();
+  setTimeout(()=>{if(document.body.contains(overlay))overlay.remove();clearConfetti()},10000);
+}
+
+function launchConfetti(){
+  const colors=['#FFD700','#009739','#002776','#FFFFFF','#FF6B35','#E8D48B'];
+  for(let i=0;i<40;i++){
+    const c=document.createElement('div');c.className='confetti';
+    c.style.left=Math.random()*100+'%';
+    c.style.width=(6+Math.random()*8)+'px';
+    c.style.height=(6+Math.random()*8)+'px';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.borderRadius=Math.random()>.5?'50%':'2px';
+    c.style.animationDuration=(2+Math.random()*3)+'s';
+    c.style.animationDelay=(Math.random()*2)+'s';
+    document.body.appendChild(c);
+  }
+}
+function clearConfetti(){document.querySelectorAll('.confetti').forEach(c=>c.remove())}
 
 // Parallax scroll effect for background
 const bgEl=document.querySelector('body::before');
