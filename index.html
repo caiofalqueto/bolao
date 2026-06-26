@@ -139,7 +139,10 @@
 
   /* ── Avatars ── */
   .avatar-img{width:32px;height:32px;border-radius:6px;background:var(--g100);vertical-align:middle;object-fit:cover}
-  .avatar-lg{width:56px;height:56px;border-radius:10px;background:var(--g100);object-fit:cover}
+  .avatar-lg{width:56px;height:56px;border-radius:10px;background:var(--g100);object-fit:cover;cursor:pointer;transition:transform .2s}
+  .avatar-lg:hover{transform:scale(1.1)}
+  .avatar-lightbox{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:9998;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s;cursor:pointer}
+  .avatar-lightbox img{max-width:85vw;max-height:85vh;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.5);object-fit:contain}
   .name-with-avatar{display:flex;align-items:center;gap:8px}
 
   /* ── Craque Modal ── */
@@ -241,6 +244,9 @@
         <span class="badge">1º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">2º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
       </div>
       <div class="card-body tbl-scroll" id="rankingBody" style="max-height:480px;overflow-y:auto"></div>
     </div>
@@ -252,6 +258,9 @@
         <span class="badge">1º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">2º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
+        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
       </div>
       <div class="card-body tbl-scroll" id="sectorBody"></div>
     </div>
@@ -667,7 +676,7 @@ function renderRanking(ranked){
     const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
     const posLabel=medals[pos]||`${pos}º`;
     const prize=prizes[pos]?`<strong style="color:${prizeColors[pos]}">${fmt(prizes[pos])}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
 }
@@ -805,7 +814,7 @@ function renderDetail(){
   if(!r||!p){ct.innerHTML='<p>Não encontrado.</p>';return}
 
   let h=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
-    <img class="avatar-lg" src="${avatarUrl(name,56)}" alt="${esc(name)}" onerror="avatarFallback(this)">
+    <img class="avatar-lg" src="${avatarUrl(name,56)}" alt="${esc(name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(name)}','${esc(name)}')" title="Clique para ampliar">
     <div><div style="font-size:1.1rem;font-weight:800;color:var(--green-dark)">${esc(name)}</div>
     <div style="font-size:.8rem;color:var(--g500)">${esc(p.sector)}${p.entryRound>1?' · Late Joiner (Rd '+p.entryRound+')':''}</div></div>
   </div>`;
@@ -870,6 +879,13 @@ function esc(s){if(s==null)return'';const d=document.createElement('div');d.text
 
 function avatarUrl(name,size){return'avatares/'+encodeURIComponent(name||'default')+'.png'}
 function avatarFallback(img){img.onerror=null;img.src='https://api.dicebear.com/9.x/bottts/svg?seed='+encodeURIComponent(img.alt||'x')+'&size=80'}
+
+function openAvatar(src,name){
+  const ov=document.createElement('div');ov.className='avatar-lightbox';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML='<img src="'+src+'" alt="'+name+'" onerror="avatarFallback(this)">';
+  document.body.appendChild(ov);
+}
 
 // ═══ CRAQUE DA RODADA ═══
 function showCraque(){
