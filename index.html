@@ -114,6 +114,26 @@
   .r-pending-badge{font-size:.62rem;font-weight:600;color:var(--g400);background:var(--g100);padding:2px 7px;border-radius:3px;white-space:nowrap}
   .expand-btn{background:none;border:1px solid var(--g200);color:var(--g500);font-size:.75rem;padding:5px 16px;border-radius:16px;cursor:pointer;transition:.2s}
   .expand-btn:hover{background:var(--g50);border-color:var(--g300)}
+  .section-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;cursor:pointer;background:var(--g50);border-bottom:1px solid var(--g200);transition:background .2s}
+  .section-toggle:hover{background:var(--g100)}
+  .section-toggle h3{font-size:.85rem;font-weight:700;color:var(--g700);margin:0}
+  .section-toggle .arrow{font-size:.7rem;color:var(--g400);transition:transform .2s}
+  .section-toggle.open .arrow{transform:rotate(180deg)}
+  .section-content{display:none}
+  .section-content.open{display:block}
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9990;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+  .modal-box{background:white;border-radius:12px;width:92%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--g200);flex-shrink:0}
+  .modal-header h3{font-size:.95rem;font-weight:700;color:var(--green-dark);margin:0}
+  .modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--g400);padding:4px 8px;border-radius:6px}
+  .modal-close:hover{background:var(--g100);color:var(--g700)}
+  .modal-body{overflow-y:auto;flex:1;padding:8px 0}
+  .bracket-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+  @media(max-width:640px){.bracket-grid{grid-template-columns:1fr}}
+  .bracket-col{display:flex;flex-direction:column;gap:6px}
+  .bracket-label{font-size:.7rem;font-weight:700;color:var(--g400);text-transform:uppercase;text-align:center;padding:4px;letter-spacing:.05em}
+  .result-row.r-today{border-left:3px solid var(--gold);background:var(--gold-bg)!important}
+  .ko-section-title{padding:12px 16px 6px;font-size:.9rem;font-weight:700;color:var(--green-dark);border-bottom:2px solid var(--gold);margin:0 16px}
   .minmax-cell{line-height:1.3}
   .minmax-cell .mm-score{font-weight:800;font-size:.88rem}
   .minmax-cell .mm-name{font-size:.66rem;color:var(--g400);font-style:italic}
@@ -185,7 +205,7 @@
     .tbl{font-size:.76rem}.tbl th,.tbl td{padding:7px 5px}
     .detail-summary{grid-template-columns:repeat(3,1fr)}
     .results-grid{padding:12px}
-    #resultsRow{grid-template-columns:1fr!important}
+    .bracket-grid{grid-template-columns:1fr}
   }
   .grp-card{display:grid;grid-template-columns:32px 1fr 100px 100px;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--g100);font-size:.82rem}
   .grp-card:last-child{border-bottom:none}
@@ -244,16 +264,10 @@
   <div id="dashboard" class="hidden">
     <div class="stats-bar" id="statsBar"></div>
 
-    <!-- Real Results: two cards side by side -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="resultsRow">
-      <div class="card" style="margin-bottom:0">
-        <div class="card-header"><h2>Placares Reais</h2><span class="badge" id="badgeMatches">—</span></div>
-        <div class="card-body" id="matchResultsBody"></div>
-      </div>
-      <div class="card" style="margin-bottom:0">
-        <div class="card-header"><h2>Classificação dos Grupos</h2><span class="badge" id="badgeGroups">—</span></div>
-        <div class="card-body" id="groupResultsBody"></div>
-      </div>
+    <!-- Placares Reais: unified card -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h2>Placares Reais</h2><span class="badge" id="badgeMatches">—</span></div>
+      <div class="card-body" id="allResultsBody"></div>
     </div>
 
     <!-- Individual Ranking -->
@@ -644,74 +658,105 @@ function renderStats(ranked){
 function renderRealResults(){
   const mp=Object.keys(DATA.realMatchResults).length;
   const gd=Object.keys(DATA.realGroupResults).length;
-
   const now=new Date();
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const dayMs=86400000;
   const liveNums=new Set();
 
-  // Parse match dates and detect live
-  const matchDates=[];
+  // Detect live group matches
   for(const m of DATA.matches){
-    let mDate=null;
-    try{
-      const[d,mo]=String(m.date).split('/').map(Number);
-      const[h,mi]=String(m.time).split(':').map(Number);
-      if(d&&mo){mDate=new Date(2026,mo-1,d);const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;if(!DATA.realMatchResults[m.num]&&diff>=0&&diff<=120)liveNums.add(m.num)}
+    if(DATA.realMatchResults[m.num])continue;
+    try{const[d,mo]=String(m.date).split('/').map(Number);const[h,mi]=String(m.time).split(':').map(Number);
+      if(d&&mo){const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;if(diff>=0&&diff<=120)liveNums.add(m.num)}
     }catch(e){}
-    matchDates.push({match:m,date:mDate});
   }
 
-  document.getElementById('badgeMatches').textContent=`${mp} de 36`+(liveNums.size?` · ${liveNums.size} ao vivo`:'');
-  document.getElementById('badgeGroups').textContent=`${gd} de 12`;
+  // 16-avos matches (Caio updates teams here)
+  const ko16=[
+    // Left bracket
+    {num:73,date:'28/06',time:'16:00',home:'África do Sul',away:'Canadá',side:'L'},
+    {num:76,date:'29/06',time:'14:00',home:'Brasil',away:'Japão',side:'L'},
+    {num:74,date:'29/06',time:'17:30',home:'Alemanha',away:'Paraguai',side:'L'},
+    {num:75,date:'29/06',time:'22:00',home:'Holanda',away:'Marrocos',side:'L'},
+    {num:78,date:'30/06',time:'14:00',home:'Costa do Marfim',away:'Noruega',side:'L'},
+    {num:77,date:'30/06',time:'18:00',home:'França',away:'Suécia',side:'L'},
+    {num:79,date:'30/06',time:'22:00',home:'México',away:'Equador',side:'L'},
+    {num:80,date:'01/07',time:'13:00',home:'Inglaterra',away:'Congo',side:'L'},
+    // Right bracket
+    {num:82,date:'01/07',time:'17:00',home:'Bélgica',away:'Senegal',side:'R'},
+    {num:81,date:'01/07',time:'21:00',home:'Estados Unidos',away:'Bósnia',side:'R'},
+    {num:84,date:'02/07',time:'16:00',home:'Espanha',away:'Áustria',side:'R'},
+    {num:83,date:'02/07',time:'20:00',home:'Portugal',away:'Croácia',side:'R'},
+    {num:85,date:'02/07',time:'00:00',home:'Suíça',away:'Argélia',side:'R'},
+    {num:88,date:'03/07',time:'15:00',home:'Austrália',away:'Egito',side:'R'},
+    {num:86,date:'03/07',time:'19:00',home:'Argentina',away:'Cabo Verde',side:'R'},
+    {num:87,date:'03/07',time:'22:30',home:'Colômbia',away:'Gana',side:'R'},
+  ];
 
-  // Classify matches: before window, in window (today ±2 days), after window
-  const dayMs=86400000;
-  const windowStart=new Date(today.getTime()-2*dayMs);
-  const windowEnd=new Date(today.getTime()+2*dayMs);
-  const before=[],visible=[],after=[];
-  for(const md of matchDates){
-    if(!md.date){visible.push(md.match);continue}
-    if(md.date<windowStart)before.push(md.match);
-    else if(md.date>windowEnd)after.push(md.match);
-    else visible.push(md.match);
+  // Detect live/today for 16-avos
+  const koLive=new Set(),koToday=new Set();
+  for(const m of ko16){
+    try{const[d,mo]=String(m.date).split('/').map(Number);const[h,mi]=String(m.time).split(':').map(Number);
+      const mDate=new Date(2026,mo-1,d);
+      if(mDate.getTime()===today.getTime())koToday.add(m.num);
+      const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;
+      if(diff>=0&&diff<=120)koLive.add(m.num);
+    }catch(e){}
   }
-  // If no matches in window (e.g. testing with old data), show all
-  if(visible.length===0){visible.push(...before.splice(0),...after.splice(0))}
 
-  const renderRow=m=>{
+  const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
+  document.getElementById('badgeMatches').textContent=`Grupos: ${mp}/36 · 16-avos: ${totalKoPlayed}/16`+(liveNums.size+koLive.size?` · ${liveNums.size+koLive.size} ao vivo`:'');
+
+  const renderKoRow=m=>{
     const real=DATA.realMatchResults[m.num];
-    const isLive=liveNums.has(m.num);
-    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
-    if(real)return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}</span></div>`;
-    return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-pending-badge">PENDENTE</span></div>`;
+    const isLive=koLive.has(m.num);
+    const isToday=koToday.has(m.num);
+    const cls='result-row'+(isLive?' r-live':real?'':' r-pending')+(isToday&&!isLive?' r-today':'');
+    const status=isLive?'<span class="r-live-badge">EM ANDAMENTO</span>':real?`<span class="r-score">${real.home} × ${real.away}</span>`:'<span class="r-pending-badge">PENDENTE</span>';
+    return`<div class="${cls}"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span>${status}</div>`;
   };
 
   let html='';
-  // Expand earlier button
-  if(before.length>0){
-    html+=`<div id="beforeMatches" class="hidden">${before.map(renderRow).join('')}</div>`;
-    html+=`<div style="text-align:center;padding:8px"><button class="expand-btn" onclick="document.getElementById('beforeMatches').classList.toggle('hidden');this.textContent=this.textContent.includes('anteriores')?'▲ Recolher':'▼ ${before.length} jogos anteriores'">▼ ${before.length} jogos anteriores</button></div>`;
-  }
-  // Visible matches
-  html+=visible.map(renderRow).join('');
-  // Expand later button
-  if(after.length>0){
-    html+=`<div style="text-align:center;padding:8px"><button class="expand-btn" onclick="document.getElementById('afterMatches').classList.toggle('hidden');this.textContent=this.textContent.includes('posteriores')?'▲ Recolher':'▼ ${after.length} jogos posteriores'">▼ ${after.length} jogos posteriores</button></div>`;
-    html+=`<div id="afterMatches" class="hidden">${after.map(renderRow).join('')}</div>`;
-  }
-  document.getElementById('matchResultsBody').innerHTML=`<div style="padding:10px 16px">${html}</div>`;
 
-  // Group classifications — all 12 with aligned columns
-  let gh='<div class="grp-card" style="border-bottom:2px solid var(--g200);padding:6px 14px"><span></span><span></span><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">1º COLOCADO</div><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">2º COLOCADO</div></div>';
+  // ═══ 16-AVOS BRACKET ═══
+  html+='<div class="ko-section-title">16-avos de Final</div>';
+  const leftMatches=ko16.filter(m=>m.side==='L');
+  const rightMatches=ko16.filter(m=>m.side==='R');
+  html+='<div class="bracket-grid">';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+leftMatches.map(renderKoRow).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+rightMatches.map(renderKoRow).join('')+'</div>';
+  html+='</div>';
+
+  // ═══ FASE DE GRUPOS (modal trigger) ═══
+  html+=`<div class="section-toggle" onclick="openGroupsModal('matches')">
+    <h3>📋 Fase de Grupos — ${mp} de 36 jogos</h3><span style="font-size:.75rem;color:var(--g400)">Toque para ver ▸</span>
+  </div>`;
+
+  // ═══ CLASSIFICAÇÃO DOS GRUPOS (modal trigger) ═══
+  html+=`<div class="section-toggle" onclick="openGroupsModal('classification')">
+    <h3>📊 Classificação dos Grupos — ${gd} de 12</h3><span style="font-size:.75rem;color:var(--g400)">Toque para ver ▸</span>
+  </div>`;
+
+  // Store data for modals
+  window._groupMatchesHtml='';
+  for(const m of DATA.matches){
+    const real=DATA.realMatchResults[m.num];const isLive=liveNums.has(m.num);
+    if(isLive)window._groupMatchesHtml+=`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
+    else if(real)window._groupMatchesHtml+=`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}</span></div>`;
+    else window._groupMatchesHtml+=`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-pending-badge">PENDENTE</span></div>`;
+  }
+
+  window._groupClassHtml='';
+  window._groupClassHtml+='<div class="grp-card" style="border-bottom:2px solid var(--g200);padding:6px 14px"><span></span><span></span><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">1º COLOCADO</div><div class="grp-place-box" style="background:none;border:none;font-weight:700;color:var(--g500);font-size:.68rem">2º COLOCADO</div></div>';
   for(const g of DATA.groups){
-    const r=DATA.realGroupResults[g.letter];
-    const done=!!r;
+    const r=DATA.realGroupResults[g.letter];const done=!!r;
     const cls=done?'grp-card grp-done':'grp-card';
     const box1=done?`<div class="grp-place-box filled">${esc(r.first)}</div>`:`<div class="grp-place-box">—</div>`;
     const box2=done?`<div class="grp-place-box filled">${esc(r.second)}</div>`:`<div class="grp-place-box">—</div>`;
-    gh+=`<div class="${cls}"><span class="grp-letter">${g.letter}</span><div class="grp-info"><div class="grp-head">${esc(g.teams[0])}</div><div class="grp-others">${g.teams.slice(1).map(t=>esc(t)).join(' · ')}</div></div>${box1}${box2}</div>`;
+    window._groupClassHtml+=`<div class="${cls}"><span class="grp-letter">${g.letter}</span><div class="grp-info"><div class="grp-head">${esc(g.teams[0])}</div><div class="grp-others">${g.teams.slice(1).map(t=>esc(t)).join(' · ')}</div></div>${box1}${box2}</div>`;
   }
-  document.getElementById('groupResultsBody').innerHTML=gh;
+
+  document.getElementById('allResultsBody').innerHTML=html;
 }
 
 function renderRanking(ranked){
@@ -983,6 +1028,18 @@ function openAvatar(src,name){
   const ov=document.createElement('div');ov.className='avatar-lightbox';
   ov.onclick=()=>ov.remove();
   ov.innerHTML='<img src="'+src+'" alt="'+name+'" onerror="avatarFallback(this)">';
+  document.body.appendChild(ov);
+}
+
+function openGroupsModal(type){
+  const title=type==='matches'?'Fase de Grupos — Placares':'Classificação dos Grupos';
+  const content=type==='matches'?window._groupMatchesHtml:window._groupClassHtml;
+  const ov=document.createElement('div');ov.className='modal-overlay';
+  ov.onclick=e=>{if(e.target===ov)ov.remove()};
+  ov.innerHTML=`<div class="modal-box">
+    <div class="modal-header"><h3>${title}</h3><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button></div>
+    <div class="modal-body">${content}</div>
+  </div>`;
   document.body.appendChild(ov);
 }
 
