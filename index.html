@@ -22,7 +22,7 @@
   header,.container{position:relative;z-index:1}
 
   /* ── Header ── */
-  header{background:linear-gradient(135deg,#002E13 0%,#004D25 50%,#006B2B 100%);color:white;padding:32px 24px 28px;text-align:center;position:relative}
+  header{background:none;color:white;padding:32px 24px 28px;text-align:center;position:relative}
   header::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);width:180px;height:180px;border:2px solid rgba(255,215,0,.15);border-radius:4px;pointer-events:none}
   header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--green),var(--gold),var(--green))}
   header h1{font-size:2rem;font-weight:900;letter-spacing:.08em;color:var(--gold);text-shadow:0 2px 4px rgba(0,0,0,.3)}
@@ -274,8 +274,8 @@
     <div class="card">
       <div class="card-header">
         <h2>Ranking Individual</h2>
-        <span class="badge">1º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">2º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
+        <span class="badge">2º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
@@ -288,8 +288,8 @@
     <div class="card">
       <div class="card-header">
         <h2>Ranking por Disciplina / Setor</h2>
-        <span class="badge">1º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">2º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
+        <span class="badge">2º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
@@ -642,14 +642,15 @@ function renderStats(ranked){
   const avg=ranked.length>0?(ranked.reduce((s,r)=>s+r.totalPoints,0)/ranked.length).toFixed(1):'0';
   const best=ranked.length>0?ranked[0].totalPoints:0;
   const total=ranked.length*40;
-  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const totalJogos=68; // 36 grupos + 16 16-avos + 8 oitavas + 4 quartas + 2 semis + 1 3ºL + 1 final
   document.getElementById('statsBar').innerHTML=`
     <div class="stat-card"><div class="number">${ranked.length}</div><div class="label">Participantes</div></div>
     <div class="stat-card" style="border:1px solid var(--gold);background:linear-gradient(135deg,var(--bg2),#1A3D20)">
       <div class="number" style="color:var(--gold)">${fmt(total)}</div>
       <div class="label">Arrecadação Total</div>
     </div>
-    <div class="stat-card"><div class="number">${mp}/36</div><div class="label">Jogos apurados</div></div>
+    <div class="stat-card"><div class="number">${mp}/${totalJogos}</div><div class="label">Jogos apurados</div></div>
     <div class="stat-card"><div class="number">${gd}/12</div><div class="label">Grupos definidos</div></div>
     <div class="stat-card"><div class="number">${best}</div><div class="label">Líder (pts)</div></div>
     <div class="stat-card"><div class="number">${avg}</div><div class="label">Média geral</div></div>`;
@@ -766,13 +767,13 @@ function renderRanking(ranked){
   const prizes={1:total*.5,2:total*.15,3:total*.05};
   const prizeColors={1:'#DAA520',2:'#8C8C8C',3:'#B87333'};
   const medals={1:'🥇',2:'🥈',3:'🥉'};
-  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  let h=`<table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th>Total</th><th>Placares</th><th>Classif.</th><th>Exatos</th><th>Saldos</th><th>Gr.Ex.</th><th>Autos</th><th>Rd</th><th>Premiação</th></tr></thead><tbody>`;
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  let h=`<table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th>Total</th><th>Placares</th><th>Exatos</th><th>Saldos</th><th>Vencedor</th><th>Grupos</th><th>Autos</th><th>Rd</th><th>Premiação</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
     const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
     const posLabel=medals[pos]||`${pos}º`;
     const prize=prizes[pos]?`<strong style="color:${prizeColors[pos]}">${fmt(prizes[pos])}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.exactGroups}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
 }
@@ -780,7 +781,7 @@ function renderRanking(ranked){
 function renderSectors(sectors){
   const total=DATA.participants.length*40;
   const sectorPrize=total*.3;
-  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
   if(!sectors.length){document.getElementById('sectorBody').innerHTML='<div class="no-results">Nenhum setor cadastrado.</div>';return}
 
   // Build sector → sorted first names and min/max data
@@ -866,12 +867,18 @@ function renderSectorDetail(){
     <div class="detail-stat"><div class="val">${members.length>=4?'✓':'✗'}</div><div class="lbl">${members.length>=4?'Qualificado':'Mín. 4'}</div></div>
   </div>`;
 
-  // Ranking table for sector members
+  // Ranking table for sector members with contribution
   h+='<div class="detail-section-title">Ranking do Setor</div>';
-  h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th>Total</th><th>Placares</th><th>Classif.</th><th>Exatos</th><th>Saldos</th><th>Autos</th></tr></thead><tbody>`;
+  const sectorTotal=members.reduce((s,p)=>s+p.totalPoints,0);
+  const sectorAvg=sectorTotal/members.length;
+  h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th>Total</th><th>Placares</th><th>Classif.</th><th>Exatos</th><th>Saldos</th><th>Autos</th><th>Contribuição</th></tr></thead><tbody>`;
   members.forEach((p,i)=>{
     const pc=i===0?'top1':i===1?'top2':i===2?'top3':'';
-    h+=`<tr><td class="pos-cell ${pc}">${i+1}º</td><td class="name-cell">${esc(p.name)}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.autoCount}</td></tr>`;
+    // Contribution: sector avg without this person vs with
+    const avgWithout=members.length>1?(sectorTotal-p.totalPoints)/(members.length-1):0;
+    const impact=sectorAvg-avgWithout; // positive = person raises the avg
+    const impactStr=impact>=0?`<span style="color:#15803D;font-weight:700">+${impact.toFixed(1)}</span>`:`<span style="color:var(--red);font-weight:700">${impact.toFixed(1)}</span>`;
+    h+=`<tr><td class="pos-cell ${pc}">${i+1}º</td><td class="name-cell">${esc(p.name)}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.groupPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.autoCount}</td><td>${impactStr}</td></tr>`;
   });
   h+='</tbody></table></div>';
 
