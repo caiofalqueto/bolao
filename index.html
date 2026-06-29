@@ -76,6 +76,11 @@
   .tbl tr:hover td{background:var(--green-light)}
   .tbl td.name-cell{text-align:left;font-weight:600}
   .tbl td.sector-cell{text-align:left;color:var(--g500);font-size:.78rem;max-width:130px;overflow-wrap:break-word;word-break:break-word;white-space:normal;line-height:1.25}
+  .tbl th.sortable{cursor:pointer;user-select:none;position:relative}
+  .tbl th.sortable:hover{background:rgba(255,255,255,.2)}
+  .tbl th.sortable::after{content:'⇅';font-size:.6rem;margin-left:3px;opacity:.5}
+  .tbl th.sortable.asc::after{content:'▲';opacity:1}
+  .tbl th.sortable.desc::after{content:'▼';opacity:1}
   .tbl .pos-cell{font-weight:800;color:var(--g400);width:36px}
   .tbl .pos-cell.top1{color:var(--gold-dark)}
   .tbl .pos-cell.top2{color:#8C8C8C}
@@ -781,7 +786,10 @@ function renderRealResults(){
     const isLive=koLive.has(m.num);
     const isToday=koToday.has(m.num);
     if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
-    if(real)return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}</span></div>`;
+    if(real){
+      const penStr=real.penalty?`<br><span style="font-size:.6rem;color:var(--gold);font-weight:600">🏆 ${esc(real.penalty)} (pên.)</span>`:'';
+      return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
+    }
     if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-pending-badge">PENDENTE</span></div>`;
     return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score" style="color:var(--g300)">—</span></div>`;
   };
@@ -836,7 +844,7 @@ function renderRanking(ranked){
   const prizeColors={1:'#DAA520',2:'#8C8C8C',3:'#B87333'};
   const medals={1:'🥇',2:'🥈',3:'🥉'};
   const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
-  let h=`<table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th>Total</th><th>Placares</th><th>Exatos</th><th>Saldos</th><th>Vencedor</th><th>Grupos</th><th>Autos</th><th>Rd</th><th>Premiação</th></tr></thead><tbody>`;
+  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="matchPoints">Placares</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="groupPoints">Grupos</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
     const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
     const posLabel=medals[pos]||`${pos}º`;
@@ -844,6 +852,21 @@ function renderRanking(ranked){
     h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
+  // Add sort handlers
+  window._rankedData=ranked;
+  document.querySelectorAll('#rankingTable th.sortable').forEach(th=>{
+    th.onclick=()=>{
+      const field=th.dataset.sort;
+      const isAsc=th.classList.contains('desc');
+      document.querySelectorAll('#rankingTable th.sortable').forEach(t=>{t.classList.remove('asc','desc')});
+      th.classList.add(isAsc?'asc':'desc');
+      const sorted=[...window._rankedData].sort((a,b)=>{
+        const va=a[field]||0,vb=b[field]||0;
+        return isAsc?va-vb:vb-va;
+      });
+      renderRanking(sorted);
+    };
+  });
 }
 
 function renderSectors(sectors){
@@ -1166,33 +1189,66 @@ function openGroupsModal(type){
   document.body.appendChild(ov);
 }
 
-// ═══ CRAQUE DA RODADA ═══
+// ═══ CRAQUE DO DIA ═══
 function showCraque(){
   if(!DATA||!RESULTS)return;
-  const playedNums=DATA.matches.filter(m=>DATA.realMatchResults[m.num]).map(m=>m.num);
-  if(playedNums.length<1)return;
-  const last3=playedNums.slice(-3);
+  const now=new Date();
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
 
-  // Calculate points in last 3 for each participant
+  // Find all played matches with their dates
+  const allMatches=[...DATA.matches];
+  const ko16=[73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87];
+  // Also consider ko16 matches if they have results
+  
+  const playedByDate={};
+  for(const m of allMatches){
+    if(!DATA.realMatchResults[m.num])continue;
+    try{
+      const[d,mo]=String(m.date).split('/').map(Number);
+      const key=`${mo}-${d}`;
+      if(!playedByDate[key])playedByDate[key]={date:new Date(2026,mo-1,d),nums:[]};
+      playedByDate[key].nums.push(m.num);
+    }catch(e){}
+  }
+
+  // Find today's games, or the most recent game day
+  const todayKey=`${today.getMonth()+1}-${today.getDate()}`;
+  let targetDay=null;
+  if(playedByDate[todayKey]){
+    targetDay=playedByDate[todayKey];
+  }else{
+    // Find most recent day with games
+    let latestDate=null;
+    for(const k in playedByDate){
+      if(!latestDate||playedByDate[k].date>latestDate.date)latestDate=playedByDate[k];
+    }
+    targetDay=latestDate;
+  }
+  if(!targetDay||targetDay.nums.length===0)return;
+
+  // Calculate points for target day
   let bestPts=-1;
   const scores=[];
   for(const p of DATA.participants){
     const r=RESULTS.allResults[p.name];if(!r)continue;
     let pts=0;
-    for(const m of last3){const sc=r.matchScores[m];if(sc&&sc.type!=='inherited')pts+=sc.points}
+    for(const mn of targetDay.nums){
+      const sc=r.matchScores[mn]||r.ko16Scores[mn];
+      if(sc&&sc.type!=='inherited')pts+=sc.points;
+    }
     scores.push({name:p.name,pts});
     if(pts>bestPts)bestPts=pts;
   }
   if(bestPts<=0)return;
 
-  // All participants with the best score
   const winners=scores.filter(s=>s.pts===bestPts);
+  const dateStr=`${targetDay.date.getDate()}/${targetDay.date.getMonth()+1}`;
+  const matchDesc=targetDay.nums.length+' jogo'+(targetDay.nums.length>1?'s':'');
 
   const overlay=document.createElement('div');
   overlay.className='craque-overlay';
   overlay.onclick=()=>{overlay.remove();clearConfetti()};
-  const matchesDesc=last3.map(n=>{const m=DATA.matches.find(x=>x.num===n);return m?`${m.home} × ${m.away}`:''}).join(', ');
-  const title=winners.length>1?'CRAQUES DA RODADA':'CRAQUE DA RODADA';
+  const title=winners.length>1?'CRAQUES DO DIA':'CRAQUE DO DIA';
 
   let avatarsHtml='';
   if(winners.length===1){
@@ -1208,11 +1264,10 @@ function showCraque(){
 
   overlay.innerHTML=`<div class="craque-modal">
     <div class="stars">⭐ ⭐ ⭐</div>
-    <div class="title">Destaque dos últimos ${last3.length} jogos</div>
+    <div class="title">Melhor desempenho em ${dateStr} (${matchDesc})</div>
     <div class="subtitle">${title}</div>
     ${avatarsHtml}
     <div class="score">${bestPts} pts</div>
-    <div class="score-label">nos jogos: ${esc(matchesDesc)}</div>
     <div class="close-hint">Toque para fechar</div>
   </div>`;
   document.body.appendChild(overlay);
