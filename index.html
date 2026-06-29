@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bolão — Copa do Mundo 2026</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -22,8 +23,7 @@
   header,.container{position:relative;z-index:1}
 
   /* ── Header ── */
-  header{background:none;color:white;padding:32px 24px 28px;text-align:center;position:relative}
-  header::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);width:180px;height:180px;border:2px solid rgba(255,215,0,.15);border-radius:4px;pointer-events:none}
+  header{background:linear-gradient(135deg,#002E13 0%,#004D25 50%,#006B2B 100%);color:white;padding:32px 24px 28px;text-align:center;position:relative}
   header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--green),var(--gold),var(--green))}
   header h1{font-size:2rem;font-weight:900;letter-spacing:.08em;color:var(--gold);text-shadow:0 2px 4px rgba(0,0,0,.3)}
   header p{font-size:.85rem;opacity:.75;margin-top:4px}
@@ -232,7 +232,6 @@
       </a>
     </div>
     <div style="flex:1;text-align:center;min-width:200px">
-      <div class="header-stars">★ ★ ★ ★ ★</div>
       <h1>BOLÃO</h1>
       <p>Copa do Mundo 2026 · Dashboard de Pontuação</p>
     </div>
@@ -392,7 +391,7 @@ function processWorkbook(wb){
     if(r1!=null&&r2!=null)data.realGroupResults[group.letter]={first:String(r1).trim(),second:String(r2).trim()};
   }
 
-  // Parse RESULTADOS: Matches (rows 21-56)
+  // Parse RESULTADOS: Matches - Groups (rows 21-56)
   for(let r=21;r<=56;r++){
     const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
     const match={num:Number(mn),date:cellAt(wsRes,'B',r)||'',time:cellAt(wsRes,'C',r)||'',group:String(cellAt(wsRes,'D',r)||''),
@@ -400,6 +399,16 @@ function processWorkbook(wb){
     data.matches.push(match);
     const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
     if(rh!=null&&ra!=null&&rh!==''&&ra!=='')data.realMatchResults[match.num]={home:Number(rh),away:Number(ra)};
+  }
+
+  // Parse RESULTADOS: Matches - 16-avos (rows 62-77)
+  for(let r=62;r<=77;r++){
+    const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
+    const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
+    const pen=cellAt(wsRes,'L',r);
+    if(rh!=null&&ra!=null&&rh!==''&&ra!==''){
+      data.realMatchResults[Number(mn)]={home:Number(rh),away:Number(ra),penalty:pen?String(pen).trim():''};
+    }
   }
 
   // Auto-detect participant blocks across all non-system sheets
