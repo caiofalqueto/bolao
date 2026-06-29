@@ -457,6 +457,43 @@ function processWorkbook(wb){
   }
 
   if(data.participants.length===0){showError('Nenhum participante encontrado. Verifique se há abas com palpites preenchidos.');return}
+  // ═══ Parse "2º MOMENTO" tab ═══
+  if(wb.Sheets['2º MOMENTO']){
+    const ws2m=wb.Sheets['2º MOMENTO'];
+    const range2=XLSX.utils.decode_range(ws2m['!ref']||'A1');
+    const maxRow2=range2.e.r+1;
+    for(let r=1;r<=maxRow2;r++){
+      const val=cellAt(ws2m,'A',r);
+      if(!val||!String(val).includes('NOME COMPLETO'))continue;
+      const pName=cellAt(ws2m,'D',r);if(!pName)continue;
+      const name=String(pName).trim();
+      if(!data.participantBets[name])data.participantBets[name]={matches:{},groups:{}};
+      const bets=data.participantBets[name];
+      // Pódio
+      bets.podium={
+        campeon:String(cellAt(ws2m,'D',r+7)||'').trim(),
+        vice:String(cellAt(ws2m,'D',r+8)||'').trim(),
+        terceiro:String(cellAt(ws2m,'D',r+9)||'').trim(),
+        quarto:String(cellAt(ws2m,'D',r+10)||'').trim()
+      };
+      // 16-avos matches (offset +17 to +32 from NOME row)
+      bets.ko16={};
+      for(let j=0;j<16;j++){
+        const mr=r+17+j;
+        const mn=cellAt(ws2m,'A',mr);if(mn==null)continue;
+        const gh=cellAt(ws2m,'E',mr),ga=cellAt(ws2m,'G',mr);
+        const ht=String(cellAt(ws2m,'D',mr)||'').trim();
+        const at=String(cellAt(ws2m,'H',mr)||'').trim();
+        const pen=cellAt(ws2m,'I',mr);
+        bets.ko16[Math.round(Number(mn))]={
+          home:gh!=null?Number(gh):null,away:ga!=null?Number(ga):null,
+          homeTeam:ht,awayTeam:at,
+          penalty:pen?String(pen).trim():''
+        };
+      }
+    }
+  }
+
   if(errors.length>0)showError('Avisos:<br>'+errors.map(e=>'• '+e).join('<br>'));
 
   DATA=data;
@@ -509,7 +546,7 @@ function calculateAll(data){
 
   function calc(p){
     const bets=data.participantBets[p.name];if(!bets)return null;
-    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},totalPoints:0,matchPoints:0,groupPoints:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
+    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},ko16Scores:{},ko16Details:{},podium:null,totalPoints:0,matchPoints:0,groupPoints:0,ko16Points:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
 
     for(let m=1;m<=36;m++){
       let bet=bets.matches[m];
@@ -531,7 +568,29 @@ function calculateAll(data){
       const sc=scoreGroup(bet.first,bet.second,real.first,real.second);r.groupScores[g.letter]=sc;
       if(sc){r.groupPoints+=sc.points;if(sc.type==='exact')r.exactGroups++}
     }
-    r.totalPoints=r.matchPoints+r.groupPoints;return r;
+    // Ko16 scoring (3/2/1 + penalty bonus)
+    if(bets.ko16){
+      r.podium=bets.podium||null;
+      const koNums=[73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87];
+      for(const mn of koNums){
+        const bet=bets.ko16[mn];
+        if(!bet||bet.home==null||bet.away==null){r.ko16Scores[mn]=null;r.ko16Details[mn]={betH:null,betA:null,pen:''};continue}
+        r.ko16Details[mn]={betH:bet.home,betA:bet.away,pen:bet.penalty,homeTeam:bet.homeTeam,awayTeam:bet.awayTeam};
+        const real=data.realMatchResults[mn];
+        if(!real){r.ko16Scores[mn]=null;continue}
+        const sc=scoreMatch(bet.home,bet.away,real.home,real.away);
+        if(sc){
+          r.ko16Points+=sc.points;r.ko16Scores[mn]=sc;
+          if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++;
+          // Penalty bonus: +1 if participant predicted correct team to advance
+          if(real.penalty){
+            const betPen=bet.penalty||(bet.home>bet.away?bet.homeTeam:bet.awayTeam);
+            if(betPen&&betPen===real.penalty){r.ko16Points+=1;r.ko16Scores[mn]={points:sc.points+1,type:sc.type,penBonus:true}}
+          }
+        }else{r.ko16Scores[mn]=sc}
+      }
+    }
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;return r;
   }
 
   for(const p of regulars){const r=calc(p);if(r)all[p.name]=r}
@@ -577,7 +636,7 @@ function calculateAll(data){
     r.matchPoints=0;r.groupPoints=0;r.exactScores=0;r.correctDiffs=0;r.correctWinners=0;r.exactGroups=0;
     for(let m=1;m<=36;m++){const sc=r.matchScores[m];if(sc){r.matchPoints+=sc.points;if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++}}
     for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc){r.groupPoints+=sc.points;if(sc.type==='exact')r.exactGroups++}}
-    r.totalPoints=r.matchPoints+r.groupPoints;all[p.name]=r;
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;all[p.name]=r;
   }
 
   // Handle regular participants who didn't fill in group classifications
@@ -606,7 +665,7 @@ function calculateAll(data){
       }
       r.groupPoints=0;
       for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc)r.groupPoints+=sc.points}
-      r.totalPoints=r.matchPoints+r.groupPoints;
+      r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;
     }
   }
 
@@ -1006,9 +1065,56 @@ function renderDetail(){
   h+='</tbody></table></div>';
   h+='</div></div>'; // close moment-body + moment-card
 
-  // ═══ 2º ao 6º MOMENTO — disabled ═══
+  // ═══ 2º MOMENTO — ENABLED ═══
+  const has2m=r.podium||Object.keys(r.ko16Scores).length>0;
+  h+=`<div class="moment-card${has2m?'':' disabled'}">
+    <div class="moment-header${has2m?'':''}" ${has2m?'onclick="toggleMoment(this)"':''}>
+      <div class="m-left"><span class="m-badge">2º Momento</span><span class="m-title">16-avos + Pódio</span></div>
+      <span class="m-pts">${has2m?r.ko16Points+' pts':'🔒 Sem palpite'}</span>
+      ${has2m?'<span class="m-arrow">▼</span>':''}
+    </div>`;
+  if(has2m){
+    h+='<div class="moment-body">';
+    // Pódio
+    if(r.podium){
+      h+='<div class="detail-section-title">Palpite do Pódio</div>';
+      h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px">';
+      const podioItems=[
+        {emoji:'🏆',label:'Campeão',team:r.podium.campeon,pts:20},
+        {emoji:'🥈',label:'Vice',team:r.podium.vice,pts:12},
+        {emoji:'🥉',label:'3º',team:r.podium.terceiro,pts:8},
+        {emoji:'4️⃣',label:'4º',team:r.podium.quarto,pts:5}
+      ];
+      for(const pi of podioItems){
+        h+=`<div style="background:var(--gold-bg);border:1px solid rgba(212,168,67,.2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.1rem">${pi.emoji}</span>
+          <div><div style="font-size:.7rem;color:var(--g400)">${pi.label} (${pi.pts} pts)</div><div style="font-weight:700;font-size:.9rem">${esc(pi.team||'—')}</div></div>
+        </div>`;
+      }
+      h+='</div>';
+    }
+    // 16-avos matches
+    h+='<div class="detail-section-title">Placares dos 16-avos</div>';
+    h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Nº</th><th style="text-align:left">Jogo</th><th>Palpite</th><th>Real</th><th>Pên.</th><th>Pts</th></tr></thead><tbody>`;
+    const koNums=[73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87];
+    for(const mn of koNums){
+      const det=r.ko16Details[mn]||{};
+      const sc=r.ko16Scores[mn];
+      const real=DATA.realMatchResults[mn];
+      const rc=sc?'sc-'+sc.type:'';
+      const bs=(det.betH!=null&&det.betA!=null)?`${det.betH} × ${det.betA}`:'—';
+      const rs=real?`${real.home} × ${real.away}`:'—';
+      const penStr=det.pen||'—';
+      const ph=sc?ptsBadge(sc.points,sc.type):'<span style="color:var(--g400)">—</span>';
+      h+=`<tr class="${rc}"><td>${mn}</td><td class="match-cell">${esc(det.homeTeam||'')} × ${esc(det.awayTeam||'')}</td><td><strong>${bs}</strong></td><td>${rs}</td><td style="font-size:.75rem">${esc(penStr)}</td><td>${ph}</td></tr>`;
+    }
+    h+='</tbody></table></div>';
+    h+='</div>'; // close moment-body
+  }
+  h+='</div>'; // close moment-card
+
+  // ═══ 3º ao 6º MOMENTO — disabled ═══
   const futureMoments=[
-    {num:'2º',title:'16-avos de Final + Pódio',desc:'Após a fase de grupos'},
     {num:'3º',title:'Oitavas de Final',desc:'Após os 16-avos'},
     {num:'4º',title:'Quartas de Final',desc:'Após as oitavas'},
     {num:'5º',title:'Semifinais',desc:'Após as quartas'},
