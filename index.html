@@ -781,17 +781,23 @@ function renderRealResults(){
   const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
   document.getElementById('badgeMatches').textContent=`Grupos: ${mp}/36 · 16-avos: ${totalKoPlayed}/16`+(liveNums.size+koLive.size?` · ${liveNums.size+koLive.size} ao vivo`:'');
 
+  const FLAGS={'Alemanha':'🇩🇪','África do Sul':'🇿🇦','Argélia':'🇩🇿','Argentina':'🇦🇷','Austrália':'🇦🇺','Áustria':'🇦🇹','Bélgica':'🇧🇪','Bósnia e Herzegovina':'🇧🇦','Brasil':'🇧🇷','Cabo Verde':'🇨🇻','Canadá':'🇨🇦','Colômbia':'🇨🇴','RD Congo':'🇨🇩','Costa do Marfim':'🇨🇮','Croácia':'🇭🇷','Egito':'🇪🇬','Equador':'🇪🇨','Espanha':'🇪🇸','Estados Unidos':'🇺🇸','França':'🇫🇷','Gana':'🇬🇭','Países Baixos':'🇳🇱','Inglaterra':'🇬🇧','Japão':'🇯🇵','Marrocos':'🇲🇦','México':'🇲🇽','Noruega':'🇳🇴','Paraguai':'🇵🇾','Portugal':'🇵🇹','Senegal':'🇸🇳','Suécia':'🇸🇪','Suíça':'🇨🇭'};
+  const flag=t=>FLAGS[t]||'';
+
   const renderKoRow=m=>{
     const real=DATA.realMatchResults[m.num];
     const isLive=koLive.has(m.num);
     const isToday=koToday.has(m.num);
-    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-live-badge">EM ANDAMENTO</span></div>`;
+    const teamH=`${esc(m.home)}<br><span style="font-size:1rem">${flag(m.home)}</span>`;
+    const teamA=`${esc(m.away)}<br><span style="font-size:1rem">${flag(m.away)}</span>`;
+    const teamsStr=`<span class="r-teams">${teamH} × ${teamA}</span>`;
+    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
     if(real){
-      const penStr=real.penalty?`<br><span style="font-size:.6rem;color:var(--gold);font-weight:600">🏆 ${esc(real.penalty)} (pên.)</span>`:'';
-      return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
+      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333;font-weight:600">● ${esc(real.penalty)} nos pênaltis</span>`:'';
+      return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
-    if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-pending-badge">PENDENTE</span></div>`;
-    return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span><span class="r-teams">${esc(m.home)} × ${esc(m.away)}</span><span class="r-score" style="color:var(--g300)">—</span></div>`;
+    if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
+    return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score" style="color:var(--g300)">—</span></div>`;
   };
 
   let html='';
@@ -852,17 +858,18 @@ function renderRanking(ranked){
     h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
-  // Add sort handlers
   window._rankedData=ranked;
+  // Sort handlers with global state
+  if(!window._sortState)window._sortState={field:null,asc:false};
   document.querySelectorAll('#rankingTable th.sortable').forEach(th=>{
+    if(window._sortState.field===th.dataset.sort)th.classList.add(window._sortState.asc?'asc':'desc');
     th.onclick=()=>{
       const field=th.dataset.sort;
-      const isAsc=th.classList.contains('desc');
-      document.querySelectorAll('#rankingTable th.sortable').forEach(t=>{t.classList.remove('asc','desc')});
-      th.classList.add(isAsc?'asc':'desc');
+      if(window._sortState.field===field){window._sortState.asc=!window._sortState.asc}
+      else{window._sortState={field,asc:false}}
       const sorted=[...window._rankedData].sort((a,b)=>{
         const va=a[field]||0,vb=b[field]||0;
-        return isAsc?va-vb:vb-va;
+        return window._sortState.asc?va-vb:vb-va;
       });
       renderRanking(sorted);
     };
@@ -887,7 +894,7 @@ function renderSectors(sectors){
     sectorData[k].names.sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
 
-  let h=`<table class="tbl"><thead><tr><th>#</th><th style="text-align:left">Disciplina / Setor</th><th>Participantes</th><th>Pior</th><th>Melhor</th><th>Média</th><th>Status</th><th>Premiação</th></tr></thead><tbody>`;
+  let h=`<table class="tbl" id="sectorTable"><thead><tr><th>#</th><th style="text-align:left">Disciplina / Setor</th><th class="sortable" data-sort="count">Participantes</th><th class="sortable" data-sort="worst">Pior</th><th class="sortable" data-sort="best">Melhor</th><th class="sortable" data-sort="avg">Média</th><th>Status</th><th>Prêmio</th></tr></thead><tbody>`;
   let firstQualified=true;
   sectors.forEach((s,i)=>{
     const isWinner=s.qualified&&firstQualified;
@@ -920,6 +927,26 @@ function renderSectors(sectors){
     </tr>`;
   });
   document.getElementById('sectorBody').innerHTML=h+'</tbody></table>';
+  // Sector sort
+  window._sectorData=sectors.map(s=>{
+    const sd=sectorData[s.name];let worst=0,best=0;
+    if(sd&&sd.scores.length>0){const sorted=[...sd.scores].sort((a,b)=>a.pts-b.pts);worst=sorted[0].pts;best=sorted[sorted.length-1].pts}
+    return{...s,worst,best,avg:s.average};
+  });
+  if(!window._sectorSort)window._sectorSort={field:null,asc:false};
+  document.querySelectorAll('#sectorTable th.sortable').forEach(th=>{
+    if(window._sectorSort.field===th.dataset.sort)th.classList.add(window._sectorSort.asc?'asc':'desc');
+    th.onclick=()=>{
+      const field=th.dataset.sort;
+      if(window._sectorSort.field===field){window._sectorSort.asc=!window._sectorSort.asc}
+      else{window._sectorSort={field,asc:false}}
+      const sorted=[...window._sectorData].sort((a,b)=>{
+        const va=a[field]||0,vb=b[field]||0;
+        return window._sectorSort.asc?va-vb:vb-va;
+      });
+      renderSectors(sorted);
+    };
+  });
 }
 
 function populateSelect(ranked){
@@ -1195,38 +1222,44 @@ function showCraque(){
   const now=new Date();
   const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
 
-  // Find all played matches with their dates
-  const allMatches=[...DATA.matches];
-  const ko16=[73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87];
-  // Also consider ko16 matches if they have results
-  
-  const playedByDate={};
-  for(const m of allMatches){
+  // All matches: group stage + knockout
+  const allMatchDates={};
+  // Group stage
+  for(const m of DATA.matches){
     if(!DATA.realMatchResults[m.num])continue;
-    try{
-      const[d,mo]=String(m.date).split('/').map(Number);
-      const key=`${mo}-${d}`;
-      if(!playedByDate[key])playedByDate[key]={date:new Date(2026,mo-1,d),nums:[]};
-      playedByDate[key].nums.push(m.num);
+    try{const[d,mo]=String(m.date).split('/').map(Number);
+      const key=`${2026}-${mo}-${d}`;
+      if(!allMatchDates[key])allMatchDates[key]={date:new Date(2026,mo-1,d),nums:[]};
+      allMatchDates[key].nums.push(m.num);
+    }catch(e){}
+  }
+  // Knockout (ko16 defined globally below)
+  const ko16Matches=[
+    {num:74,date:'29/06'},{num:73,date:'28/06'},{num:75,date:'29/06'},{num:77,date:'30/06'},
+    {num:81,date:'01/07'},{num:82,date:'01/07'},{num:83,date:'02/07'},{num:84,date:'02/07'},
+    {num:76,date:'29/06'},{num:78,date:'30/06'},{num:79,date:'30/06'},{num:80,date:'01/07'},
+    {num:85,date:'02/07'},{num:86,date:'03/07'},{num:87,date:'03/07'},{num:88,date:'03/07'}
+  ];
+  for(const m of ko16Matches){
+    if(!DATA.realMatchResults[m.num])continue;
+    try{const[d,mo]=String(m.date).split('/').map(Number);
+      const key=`${2026}-${mo}-${d}`;
+      if(!allMatchDates[key])allMatchDates[key]={date:new Date(2026,mo-1,d),nums:[]};
+      if(!allMatchDates[key].nums.includes(m.num))allMatchDates[key].nums.push(m.num);
     }catch(e){}
   }
 
-  // Find today's games, or the most recent game day
-  const todayKey=`${today.getMonth()+1}-${today.getDate()}`;
+  // Find today's games, or most recent game day
+  const todayKey=`${2026}-${today.getMonth()+1}-${today.getDate()}`;
   let targetDay=null;
-  if(playedByDate[todayKey]){
-    targetDay=playedByDate[todayKey];
-  }else{
-    // Find most recent day with games
+  if(allMatchDates[todayKey]){targetDay=allMatchDates[todayKey]}
+  else{
     let latestDate=null;
-    for(const k in playedByDate){
-      if(!latestDate||playedByDate[k].date>latestDate.date)latestDate=playedByDate[k];
-    }
+    for(const k in allMatchDates){if(!latestDate||allMatchDates[k].date>latestDate.date)latestDate=allMatchDates[k]}
     targetDay=latestDate;
   }
   if(!targetDay||targetDay.nums.length===0)return;
 
-  // Calculate points for target day
   let bestPts=-1;
   const scores=[];
   for(const p of DATA.participants){
@@ -1244,11 +1277,11 @@ function showCraque(){
   const winners=scores.filter(s=>s.pts===bestPts);
   const dateStr=`${targetDay.date.getDate()}/${targetDay.date.getMonth()+1}`;
   const matchDesc=targetDay.nums.length+' jogo'+(targetDay.nums.length>1?'s':'');
+  const title=winners.length>1?'CRAQUES DO DIA':'CRAQUE DO DIA';
 
   const overlay=document.createElement('div');
   overlay.className='craque-overlay';
   overlay.onclick=()=>{overlay.remove();clearConfetti()};
-  const title=winners.length>1?'CRAQUES DO DIA':'CRAQUE DO DIA';
 
   let avatarsHtml='';
   if(winners.length===1){
