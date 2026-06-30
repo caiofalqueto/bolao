@@ -701,6 +701,7 @@ function calcSectors(ranked,allParticipants){
 
 // ═══ RENDERING ═══
 function calculateAndRender(){
+  window._prizeMap=null;window._sectorPrizeMap=null; // reset prize allocation
   const{allResults,autoBets}=calculateAll(DATA);
   const ranked=rankAll(DATA,allResults);
   const sectors=calcSectors(ranked,DATA.participants);
@@ -781,19 +782,17 @@ function renderRealResults(){
   const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
   document.getElementById('badgeMatches').textContent=`Grupos: ${mp}/36 · 16-avos: ${totalKoPlayed}/16`+(liveNums.size+koLive.size?` · ${liveNums.size+koLive.size} ao vivo`:'');
 
-  const FLAGS={'Alemanha':'🇩🇪','África do Sul':'🇿🇦','Argélia':'🇩🇿','Argentina':'🇦🇷','Austrália':'🇦🇺','Áustria':'🇦🇹','Bélgica':'🇧🇪','Bósnia e Herzegovina':'🇧🇦','Brasil':'🇧🇷','Cabo Verde':'🇨🇻','Canadá':'🇨🇦','Colômbia':'🇨🇴','RD Congo':'🇨🇩','Costa do Marfim':'🇨🇮','Croácia':'🇭🇷','Egito':'🇪🇬','Equador':'🇪🇨','Espanha':'🇪🇸','Estados Unidos':'🇺🇸','França':'🇫🇷','Gana':'🇬🇭','Países Baixos':'🇳🇱','Inglaterra':'🇬🇧','Japão':'🇯🇵','Marrocos':'🇲🇦','México':'🇲🇽','Noruega':'🇳🇴','Paraguai':'🇵🇾','Portugal':'🇵🇹','Senegal':'🇸🇳','Suécia':'🇸🇪','Suíça':'🇨🇭'};
+  const FLAGS={'Alemanha':'🇩🇪','África do Sul':'🇿🇦','Argélia':'🇩🇿','Argentina':'🇦🇷','Austrália':'🇦🇺','Áustria':'🇦🇹','Bélgica':'🇧🇪','Bósnia e Herzegovina':'🇧🇦','Brasil':'🇧🇷','Cabo Verde':'🇨🇻','Canadá':'🇨🇦','Colômbia':'🇨🇴','RD Congo':'🇨🇩','Costa do Marfim':'🇨🇮','Croácia':'🇭🇷','Egito':'🇪🇬','Equador':'🇪🇨','Espanha':'🇪🇸','Estados Unidos':'🇺🇸','França':'🇫🇷','Gana':'🇬🇭','Países Baixos':'🇳🇱','Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Japão':'🇯🇵','Marrocos':'🇲🇦','México':'🇲🇽','Noruega':'🇳🇴','Paraguai':'🇵🇾','Portugal':'🇵🇹','Senegal':'🇸🇳','Suécia':'🇸🇪','Suíça':'🇨🇭'};
   const flag=t=>FLAGS[t]||'';
 
   const renderKoRow=m=>{
     const real=DATA.realMatchResults[m.num];
     const isLive=koLive.has(m.num);
     const isToday=koToday.has(m.num);
-    const teamH=`${esc(m.home)}<br><span style="font-size:1rem">${flag(m.home)}</span>`;
-    const teamA=`${esc(m.away)}<br><span style="font-size:1rem">${flag(m.away)}</span>`;
-    const teamsStr=`<span class="r-teams">${teamH} × ${teamA}</span>`;
+    const teamsStr=`<span class="r-teams"><span style="display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px"><span>${esc(m.home)}</span><span style="font-size:.9rem">${flag(m.home)}</span></span> <span style="margin:0 2px">×</span> <span style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px"><span>${esc(m.away)}</span><span style="font-size:.9rem">${flag(m.away)}</span></span></span>`;
     if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
     if(real){
-      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333;font-weight:600">● ${esc(real.penalty)} nos pênaltis</span>`:'';
+      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333;font-weight:600">⚽ ${esc(real.penalty)}</span>`:'';
       return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
     if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
@@ -850,12 +849,24 @@ function renderRanking(ranked){
   const prizeColors={1:'#DAA520',2:'#8C8C8C',3:'#B87333'};
   const medals={1:'🥇',2:'🥈',3:'🥉'};
   const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+
+  // Pre-calculate prize winners based on ORIGINAL ranking (by total points)
+  if(!window._prizeMap){
+    window._prizeMap={};
+    const byTotal=[...ranked].sort((a,b)=>b.totalPoints-a.totalPoints);
+    for(let i=0;i<Math.min(3,byTotal.length);i++){
+      window._prizeMap[byTotal[i].name]={pos:i+1,prize:prizes[i+1],color:prizeColors[i+1],medal:medals[i+1]};
+    }
+  }
+
   let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="matchPoints">Placares</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="groupPoints">Grupos</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
-    const pos=i+1,pc=pos===1?'top1':pos===2?'top2':pos===3?'top3':'';
-    const posLabel=medals[pos]||`${pos}º`;
-    const prize=prizes[pos]?`<strong style="color:${prizeColors[pos]}">${fmt(prizes[pos])}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${medals[pos]?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    const pos=i+1;
+    const pw=window._prizeMap[p.name];
+    const posLabel=pw?pw.medal:`${pos}º`;
+    const pc=pw?'top'+pw.pos:'';
+    const prize=pw?`<strong style="color:${pw.color}">${fmt(pw.prize)}</strong>`:'';
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
   window._rankedData=ranked;
@@ -894,11 +905,17 @@ function renderSectors(sectors){
     sectorData[k].names.sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
 
+  // Pre-calculate sector prize winner
+  if(!window._sectorPrizeMap){
+    window._sectorPrizeMap={};
+    const byAvg=[...sectors].sort((a,b)=>b.average-a.average);
+    const winner=byAvg.find(s=>s.qualified);
+    if(winner)window._sectorPrizeMap[winner.name]=true;
+  }
+
   let h=`<table class="tbl" id="sectorTable"><thead><tr><th>#</th><th style="text-align:left">Disciplina / Setor</th><th class="sortable" data-sort="count">Participantes</th><th class="sortable" data-sort="worst">Pior</th><th class="sortable" data-sort="best">Melhor</th><th class="sortable" data-sort="avg">Média</th><th>Status</th><th>Prêmio</th></tr></thead><tbody>`;
-  let firstQualified=true;
   sectors.forEach((s,i)=>{
-    const isWinner=s.qualified&&firstQualified;
-    if(isWinner)firstQualified=false;
+    const isWinner=!!window._sectorPrizeMap[s.name];
     const pc=isWinner?'top1':'';
     const posLabel=isWinner?'🏆':`${i+1}º`;
     const sc=s.qualified?'sector-qualified':'sector-not-qualified';
@@ -1295,12 +1312,35 @@ function showCraque(){
     avatarsHtml+='</div>';
   }
 
+  // Build game descriptions for popup
+  const allKoMap={};ko16Matches.forEach(m=>{allKoMap[m.num]=m});
+  const gameDescs=targetDay.nums.map(mn=>{
+    const gm=DATA.matches.find(x=>x.num===mn);
+    if(gm)return`${gm.home} × ${gm.away}`;
+    const km=allKoMap[mn];
+    // find teams from ko16 render data
+    const ko16Full=[
+      {num:74,home:'Alemanha',away:'Paraguai'},{num:73,home:'África do Sul',away:'Canadá'},
+      {num:75,home:'Países Baixos',away:'Marrocos'},{num:77,home:'França',away:'Suécia'},
+      {num:81,home:'Estados Unidos',away:'Bósnia e Herzegovina'},{num:82,home:'Bélgica',away:'Senegal'},
+      {num:83,home:'Portugal',away:'Croácia'},{num:84,home:'Espanha',away:'Áustria'},
+      {num:76,home:'Brasil',away:'Japão'},{num:78,home:'Costa do Marfim',away:'Noruega'},
+      {num:79,home:'México',away:'Equador'},{num:80,home:'Inglaterra',away:'RD Congo'},
+      {num:85,home:'Suíça',away:'Argélia'},{num:86,home:'Argentina',away:'Cabo Verde'},
+      {num:87,home:'Colômbia',away:'Gana'},{num:88,home:'Austrália',away:'Egito'}
+    ];
+    const kf=ko16Full.find(x=>x.num===mn);
+    return kf?`${kf.home} × ${kf.away}`:`Jogo ${mn}`;
+  });
+  const gamesLabel=gameDescs.join(' · ');
+
   overlay.innerHTML=`<div class="craque-modal">
     <div class="stars">⭐ ⭐ ⭐</div>
     <div class="title">Melhor desempenho em ${dateStr} (${matchDesc})</div>
     <div class="subtitle">${title}</div>
     ${avatarsHtml}
     <div class="score">${bestPts} pts</div>
+    <div class="score-label" style="font-size:.75rem;color:rgba(255,255,255,.6);margin-top:6px">${esc(gamesLabel)}</div>
     <div class="close-hint">Toque para fechar</div>
   </div>`;
   document.body.appendChild(overlay);
