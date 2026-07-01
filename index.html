@@ -107,15 +107,14 @@
   /* ── Results section ── */
   .results-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px}
   @media(max-width:800px){.results-grid{grid-template-columns:1fr}}
-  .result-row{display:grid;grid-template-columns:28px 48px 1fr 90px;align-items:center;padding:8px 10px;border-radius:6px;font-size:.82rem;gap:6px;min-height:44px}
+  .result-row{display:grid;grid-template-columns:28px 48px 1fr;align-items:center;padding:8px 10px;border-radius:6px;font-size:.82rem;gap:2px 6px;min-height:44px}
   .result-row:nth-child(odd){background:var(--g50)}
-  .result-row .r-num{color:var(--g400);font-weight:600;text-align:center;font-size:.75rem}
+  .result-row .r-num{grid-row:1/3;color:var(--g400);font-weight:600;text-align:center;font-size:.75rem;align-self:center}
+  .result-row .r-datetime{grid-row:1/3;color:var(--g400);font-size:.7rem;text-align:center;line-height:1.3;align-self:center}
   .result-row .r-teams{display:grid;grid-template-columns:1fr 16px 1fr;align-items:center;font-weight:500;font-size:.82rem}
-  .result-row .r-teams .t-home{text-align:right}
-  .result-row .r-teams .t-away{text-align:left}
-  .result-row .r-teams .t-vs{text-align:center;color:var(--g400);font-weight:700}
-  .result-row .r-score{font-weight:800;color:var(--green-dark);text-align:center;background:var(--green-light);padding:3px 8px;border-radius:4px;font-size:.8rem;min-width:80px}
-  .result-row .r-datetime{color:var(--g400);font-size:.7rem;text-align:center;line-height:1.3}
+  .result-row .r-score{font-weight:800;color:var(--green-dark);text-align:center;background:var(--green-light);padding:2px 10px;border-radius:4px;font-size:.78rem;justify-self:center;grid-column:3}
+  .result-row .r-live-badge{justify-self:center;grid-column:3}
+  .result-row .r-pending-badge{justify-self:center;grid-column:3}
   .result-row.r-live{background:rgba(255,215,0,.1)!important;border:1px solid rgba(255,215,0,.3)}
   .r-live-badge{font-size:.62rem;font-weight:700;color:#E53;background:rgba(229,51,51,.12);padding:2px 7px;border-radius:3px;animation:pulse 1.5s ease-in-out infinite;white-space:nowrap}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -814,6 +813,44 @@ function renderRealResults(){
   html+='<div class="bracket-grid">';
   html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+leftMatches.map(renderKoRow).join('')+'</div>';
   html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+rightMatches.map(renderKoRow).join('')+'</div>';
+  html+='</div>';
+
+  // ═══ OITAVAS DE FINAL (preview) ═══
+  const getWinner=(num)=>{
+    const real=DATA.realMatchResults[num];
+    if(!real)return null;
+    const m=ko16.find(x=>x.num===num);
+    if(!m)return null;
+    if(real.home>real.away)return m.home;
+    if(real.away>real.home)return m.away;
+    if(real.penalty)return real.penalty;
+    return null;
+  };
+  const oitavas=[
+    {num:89,m1:74,m2:73,side:'L'},{num:90,m1:75,m2:77,side:'L'},
+    {num:91,m1:81,m2:82,side:'L'},{num:92,m1:83,m2:84,side:'L'},
+    {num:93,m1:76,m2:78,side:'R'},{num:94,m1:79,m2:80,side:'R'},
+    {num:95,m1:85,m2:86,side:'R'},{num:96,m1:87,m2:88,side:'R'},
+  ];
+  html+='<div class="ko-section-title" style="margin-top:12px">Oitavas de Final</div>';
+  html+='<div class="bracket-grid">';
+  const renderOitava=(o)=>{
+    const w1=getWinner(o.m1),w2=getWinner(o.m2);
+    const t1=w1||`Venc. Jogo ${o.m1}`;
+    const t2=w2||`Venc. Jogo ${o.m2}`;
+    const f1=w1?flag(w1):'',f2=w2?flag(w2):'';
+    const cls1=w1?'':'color:var(--g400);font-style:italic';
+    const cls2=w2?'':'color:var(--g400);font-style:italic';
+    return`<div class="result-row" style="border:1px dashed var(--g200)">
+      <span class="r-num">${o.num}</span>
+      <span class="r-datetime" style="font-size:.6rem">A definir</span>
+      <span class="r-teams"><span style="text-align:right;${cls1}">${f1} ${esc(t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${cls2}">${esc(t2)} ${f2}</span></span>
+      <span class="r-score" style="color:var(--g300);background:none;font-size:.7rem">—</span>
+    </div>`;
+  };
+  const oitL=oitavas.filter(o=>o.side==='L'),oitR=oitavas.filter(o=>o.side==='R');
+  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+oitL.map(renderOitava).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+oitR.map(renderOitava).join('')+'</div>';
   html+='</div>';
 
   // ═══ FASE DE GRUPOS (modal trigger) ═══
