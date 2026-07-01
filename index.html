@@ -87,7 +87,9 @@
   .tbl .pos-cell.top3{color:#B87333}
   .tbl .pts-cell{font-weight:800;font-size:.92rem;color:var(--green-dark)}
   .tbl .match-cell{text-align:left}
-  .tbl-scroll{overflow-x:auto}
+  .tbl-scroll{overflow-x:auto;max-height:520px;overflow-y:auto;position:relative}
+  .tbl-scroll thead{position:sticky;top:0;z-index:10}
+  .tbl-scroll thead th{background:#004D25;color:white;border-bottom:2px solid var(--gold)}
 
   .sc-exact{background:#DCFCE7!important}
   .sc-diff,.sc-swapped{background:#DBEAFE!important}
@@ -105,12 +107,15 @@
   /* ── Results section ── */
   .results-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px}
   @media(max-width:800px){.results-grid{grid-template-columns:1fr}}
-  .result-row{display:flex;align-items:center;padding:8px 10px;border-radius:6px;font-size:.82rem;gap:8px;min-height:44px}
+  .result-row{display:grid;grid-template-columns:28px 48px 1fr 90px;align-items:center;padding:8px 10px;border-radius:6px;font-size:.82rem;gap:6px;min-height:44px}
   .result-row:nth-child(odd){background:var(--g50)}
-  .result-row .r-num{color:var(--g400);font-weight:600;min-width:22px;text-align:center}
-  .result-row .r-teams{flex:1;font-weight:500}
-  .result-row .r-score{font-weight:800;color:var(--green-dark);min-width:50px;text-align:center;background:var(--green-light);padding:3px 8px;border-radius:4px}
-  .result-row .r-datetime{color:var(--g400);font-size:.7rem;min-width:40px;text-align:center;line-height:1.3}
+  .result-row .r-num{color:var(--g400);font-weight:600;text-align:center;font-size:.75rem}
+  .result-row .r-teams{display:grid;grid-template-columns:1fr 16px 1fr;align-items:center;font-weight:500;font-size:.82rem}
+  .result-row .r-teams .t-home{text-align:right}
+  .result-row .r-teams .t-away{text-align:left}
+  .result-row .r-teams .t-vs{text-align:center;color:var(--g400);font-weight:700}
+  .result-row .r-score{font-weight:800;color:var(--green-dark);text-align:center;background:var(--green-light);padding:3px 8px;border-radius:4px;font-size:.8rem;min-width:80px}
+  .result-row .r-datetime{color:var(--g400);font-size:.7rem;text-align:center;line-height:1.3}
   .result-row.r-live{background:rgba(255,215,0,.1)!important;border:1px solid rgba(255,215,0,.3)}
   .r-live-badge{font-size:.62rem;font-weight:700;color:#E53;background:rgba(229,51,51,.12);padding:2px 7px;border-radius:3px;animation:pulse 1.5s ease-in-out infinite;white-space:nowrap}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -285,7 +290,7 @@
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
       </div>
-      <div class="card-body tbl-scroll" id="rankingBody" style="max-height:480px;overflow-y:auto"></div>
+      <div class="card-body tbl-scroll" id="rankingBody"></div>
     </div>
 
     <!-- Sector Ranking -->
@@ -751,9 +756,9 @@ function renderRealResults(){
     // Chave A (esquerda)
     {num:74,date:'29/06',time:'17:30',home:'Alemanha',away:'Paraguai',side:'L'},
     {num:73,date:'28/06',time:'16:00',home:'África do Sul',away:'Canadá',side:'L'},
-    {num:75,date:'29/06',time:'22:00',home:'Países Baixos',away:'Marrocos',side:'L'},
+    {num:75,date:'29/06',time:'22:00',home:'Holanda',away:'Marrocos',side:'L'},
     {num:77,date:'30/06',time:'18:00',home:'França',away:'Suécia',side:'L'},
-    {num:81,date:'01/07',time:'21:00',home:'Estados Unidos',away:'Bósnia e Herzegovina',side:'L'},
+    {num:81,date:'01/07',time:'21:00',home:'EUA',away:'Bósnia',side:'L'},
     {num:82,date:'01/07',time:'17:00',home:'Bélgica',away:'Senegal',side:'L'},
     {num:83,date:'02/07',time:'20:00',home:'Portugal',away:'Croácia',side:'L'},
     {num:84,date:'02/07',time:'16:00',home:'Espanha',away:'Áustria',side:'L'},
@@ -761,7 +766,7 @@ function renderRealResults(){
     {num:76,date:'29/06',time:'14:00',home:'Brasil',away:'Japão',side:'R'},
     {num:78,date:'30/06',time:'14:00',home:'Costa do Marfim',away:'Noruega',side:'R'},
     {num:79,date:'30/06',time:'22:00',home:'México',away:'Equador',side:'R'},
-    {num:80,date:'01/07',time:'13:00',home:'Inglaterra',away:'RD Congo',side:'R'},
+    {num:80,date:'01/07',time:'13:00',home:'Inglaterra',away:'Congo',side:'R'},
     {num:85,date:'02/07',time:'00:00',home:'Suíça',away:'Argélia',side:'R'},
     {num:86,date:'03/07',time:'19:00',home:'Argentina',away:'Cabo Verde',side:'R'},
     {num:87,date:'03/07',time:'22:30',home:'Colômbia',away:'Gana',side:'R'},
@@ -782,21 +787,22 @@ function renderRealResults(){
   const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
   document.getElementById('badgeMatches').textContent=`Grupos: ${mp}/36 · 16-avos: ${totalKoPlayed}/16`+(liveNums.size+koLive.size?` · ${liveNums.size+koLive.size} ao vivo`:'');
 
-  const FLAGS={'Alemanha':'🇩🇪','África do Sul':'🇿🇦','Argélia':'🇩🇿','Argentina':'🇦🇷','Austrália':'🇦🇺','Áustria':'🇦🇹','Bélgica':'🇧🇪','Bósnia e Herzegovina':'🇧🇦','Brasil':'🇧🇷','Cabo Verde':'🇨🇻','Canadá':'🇨🇦','Colômbia':'🇨🇴','RD Congo':'🇨🇩','Costa do Marfim':'🇨🇮','Croácia':'🇭🇷','Egito':'🇪🇬','Equador':'🇪🇨','Espanha':'🇪🇸','Estados Unidos':'🇺🇸','França':'🇫🇷','Gana':'🇬🇭','Países Baixos':'🇳🇱','Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Japão':'🇯🇵','Marrocos':'🇲🇦','México':'🇲🇽','Noruega':'🇳🇴','Paraguai':'🇵🇾','Portugal':'🇵🇹','Senegal':'🇸🇳','Suécia':'🇸🇪','Suíça':'🇨🇭'};
-  const flag=t=>FLAGS[t]||'';
+  const FLAGCODES={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
+  const flag=t=>{const c=FLAGCODES[t];return c?`<img src="https://flagcdn.com/20x15/${c}.png" alt="${t}" style="vertical-align:middle;margin:0 2px;width:20px;height:15px">`:''};
 
   const renderKoRow=m=>{
     const real=DATA.realMatchResults[m.num];
     const isLive=koLive.has(m.num);
     const isToday=koToday.has(m.num);
-    const teamsStr=`<span class="r-teams"><span style="display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px"><span>${esc(m.home)}</span><span style="font-size:.9rem">${flag(m.home)}</span></span> <span style="margin:0 2px">×</span> <span style="display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px"><span>${esc(m.away)}</span><span style="font-size:.9rem">${flag(m.away)}</span></span></span>`;
+    const fH=flag(m.home),fA=flag(m.away);
+    const teamsStr=`<span class="r-teams"><span style="text-align:right">${fH} ${esc(m.home)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left">${esc(m.away)} ${fA}</span></span>`;
     if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
     if(real){
-      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333;font-weight:600">⚽ ${esc(real.penalty)}</span>`:'';
+      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333">⚽ ${esc(real.penalty)}</span>`:'';
       return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
     if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
-    return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score" style="color:var(--g300)">—</span></div>`;
+    return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${esc(m.date)}<br>${esc(m.time)}</span>${teamsStr}<span class="r-score" style="color:var(--g300);background:none">—</span></div>`;
   };
 
   let html='';
@@ -859,14 +865,16 @@ function renderRanking(ranked){
     }
   }
 
-  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="matchPoints">Placares</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="groupPoints">Grupos</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
+  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="m1pts">1ºM</th><th class="sortable" data-sort="ko16Points">2ºM</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
     const pos=i+1;
     const pw=window._prizeMap[p.name];
     const posLabel=pw?pw.medal:`${pos}º`;
     const pc=pw?'top'+pw.pos:'';
     const prize=pw?`<strong style="color:${pw.color}">${fmt(pw.prize)}</strong>`:'';
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${p.matchPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.groupPoints}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    const m1pts=p.matchPoints+p.groupPoints;
+    p.m1pts=m1pts; // store for sorting
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${m1pts}</td><td>${p.ko16Points||0}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
   window._rankedData=ranked;
@@ -1321,11 +1329,11 @@ function showCraque(){
     // find teams from ko16 render data
     const ko16Full=[
       {num:74,home:'Alemanha',away:'Paraguai'},{num:73,home:'África do Sul',away:'Canadá'},
-      {num:75,home:'Países Baixos',away:'Marrocos'},{num:77,home:'França',away:'Suécia'},
-      {num:81,home:'Estados Unidos',away:'Bósnia e Herzegovina'},{num:82,home:'Bélgica',away:'Senegal'},
+      {num:75,home:'Holanda',away:'Marrocos'},{num:77,home:'França',away:'Suécia'},
+      {num:81,home:'EUA',away:'Bósnia'},{num:82,home:'Bélgica',away:'Senegal'},
       {num:83,home:'Portugal',away:'Croácia'},{num:84,home:'Espanha',away:'Áustria'},
       {num:76,home:'Brasil',away:'Japão'},{num:78,home:'Costa do Marfim',away:'Noruega'},
-      {num:79,home:'México',away:'Equador'},{num:80,home:'Inglaterra',away:'RD Congo'},
+      {num:79,home:'México',away:'Equador'},{num:80,home:'Inglaterra',away:'Congo'},
       {num:85,home:'Suíça',away:'Argélia'},{num:86,home:'Argentina',away:'Cabo Verde'},
       {num:87,home:'Colômbia',away:'Gana'},{num:88,home:'Austrália',away:'Egito'}
     ];
