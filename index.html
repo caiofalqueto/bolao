@@ -458,6 +458,16 @@ function processWorkbook(wb){
     }
   }
 
+  // Parse RESULTADOS: Matches - Oitavas (rows 82-89)
+  for(let r=82;r<=89;r++){
+    const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
+    const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
+    const pen=cellAt(wsRes,'L',r);
+    if(rh!=null&&ra!=null&&rh!==''&&ra!==''){
+      data.realMatchResults[Number(mn)]={home:Number(rh),away:Number(ra),penalty:pen?String(pen).trim():''};
+    }
+  }
+
   // Auto-detect participant blocks across all non-system sheets
   for(const sheetName of wb.SheetNames){
     if(sheetName==='RESULTADOS'||sheetName.startsWith('_')||sheetName.includes('MOMENTO'))continue;
@@ -824,7 +834,6 @@ function renderRealResults(){
   }
 
   const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
-  document.getElementById('badgeMatches').textContent=`16-avos: ${totalKoPlayed}/16 · Oitavas: ${oitPlayed}/8`+(oitLive.size?` · ${oitLive.size} ao vivo`:'');
 
   const FLAGCODES={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
   const flag=t=>{const c=FLAGCODES[t];return c?`<img src="https://flagcdn.com/20x15/${c}.png" alt="${t}" style="vertical-align:middle;margin:0 2px;width:20px;height:15px">`:''};
@@ -869,6 +878,7 @@ function renderRealResults(){
     }catch(e){}
   }
   const oitPlayed=oitavas.filter(m=>DATA.realMatchResults[m.num]).length;
+  document.getElementById('badgeMatches').textContent=`16-avos: ${totalKoPlayed}/16 · Oitavas: ${oitPlayed}/8`+(oitLive.size?` · ${oitLive.size} ao vivo`:'');
 
   const renderOitRow=(m)=>{
     const real=DATA.realMatchResults[m.num];
