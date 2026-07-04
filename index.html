@@ -551,6 +551,36 @@ function processWorkbook(wb){
     }
   }
 
+  // ═══ Parse "3º MOMENTO" tab ═══
+  if(wb.Sheets['3º MOMENTO']){
+    const ws3m=wb.Sheets['3º MOMENTO'];
+    const range3=XLSX.utils.decode_range(ws3m['!ref']||'A1');
+    const maxRow3=range3.e.r+1;
+    for(let r=1;r<=maxRow3;r++){
+      const val=cellAt(ws3m,'A',r);
+      if(!val||!String(val).includes('NOME COMPLETO'))continue;
+      const pName=cellAt(ws3m,'D',r);if(!pName)continue;
+      const name=String(pName).trim();
+      if(!data.participantBets[name])data.participantBets[name]={matches:{},groups:{}};
+      const bets=data.participantBets[name];
+      // Oitavas matches (offset +6 to +13 from NOME row)
+      bets.oitavas={};
+      for(let j=0;j<8;j++){
+        const mr=r+6+j;
+        const mn=cellAt(ws3m,'A',mr);if(mn==null)continue;
+        const gh=cellAt(ws3m,'E',mr),ga=cellAt(ws3m,'G',mr);
+        const ht=String(cellAt(ws3m,'D',mr)||'').trim();
+        const at=String(cellAt(ws3m,'H',mr)||'').trim();
+        const pen=cellAt(ws3m,'I',mr);
+        bets.oitavas[Math.round(Number(mn))]={
+          home:gh!=null?Number(gh):null,away:ga!=null?Number(ga):null,
+          homeTeam:ht,awayTeam:at,
+          penalty:pen?String(pen).trim():''
+        };
+      }
+    }
+  }
+
   if(errors.length>0)showError('Avisos:<br>'+errors.map(e=>'• '+e).join('<br>'));
 
   DATA=data;
@@ -647,7 +677,37 @@ function calculateAll(data){
         }else{r.ko16Scores[mn]=sc}
       }
     }
+    // Oitavas scoring (4/2/1 + penalty bonus)
+    if(bets.oitavas){
+      const oitNums=[89,90,93,94,92,91,96,95];
+      for(const mn of oitNums){
+        const bet=bets.oitavas[mn];
+        if(!bet||bet.home==null||bet.away==null){r.oitScores[mn]=null;r.oitDetails[mn]={betH:null,betA:null,pen:'',homeTeam:'',awayTeam:''};continue}
+        r.oitDetails[mn]={betH:bet.home,betA:bet.away,pen:bet.penalty,homeTeam:bet.homeTeam,awayTeam:bet.awayTeam};
+        const real=data.realMatchResults[mn];
+        if(!real){r.oitScores[mn]=null;continue}
+        const sc=scoreMatchOit(bet.home,bet.away,real.home,real.away);
+        if(sc){
+          r.oitPoints+=sc.points;r.oitScores[mn]=sc;
+          if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++;
+          if(real.penalty){
+            const betPen=bet.penalty||(bet.home>bet.away?bet.homeTeam:bet.awayTeam);
+            if(betPen&&betPen===real.penalty){r.oitPoints+=1;r.oitScores[mn]={points:sc.points+1,type:sc.type,penBonus:true}}
+          }
+        }else{r.oitScores[mn]=sc}
+      }
+    }
     r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;return r;
+  }
+
+  // Oitavas score helper (4/2/1 scale)
+  function scoreMatchOit(bh,ba,rh,ra){
+    if(rh==null||ra==null||bh==null||ba==null||isNaN(bh)||isNaN(ba))return null;
+    if(bh===rh&&ba===ra)return{points:4,type:'exact'};
+    const bd=bh-ba,rd=rh-ra,bw=Math.sign(bd),rw=Math.sign(rd);
+    if(bw===rw&&bd===rd)return{points:2,type:'diff'};
+    if(bw===rw)return{points:1,type:'winner'};
+    return{points:0,type:'wrong'};
   }
 
   for(const p of regulars){const r=calc(p);if(r)all[p.name]=r}
