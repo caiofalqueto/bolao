@@ -403,24 +403,40 @@ function processWorkbook(wb){
   // Parse RESULTADOS: Matches - Groups (rows 21-56)
   function fmtDate(v){
     if(!v)return'';
+    // Excel serial number (e.g. 46184 = Jun 11, 2026)
+    if(typeof v==='number'&&v>40000){
+      const epoch=new Date(1899,11,30);
+      const dt=new Date(epoch.getTime()+v*86400000);
+      const d=dt.getDate(),m=dt.getMonth()+1;
+      return(d<10?'0':'')+d+'/'+(m<10?'0':'')+m;
+    }
     if(v instanceof Date){const d=v.getDate(),m=v.getMonth()+1;return(d<10?'0':'')+d+'/'+(m<10?'0':'')+m}
     const s=String(v);
-    if(s.includes('/')&&s.length<=5)return s;
-    // Try parsing date string like "Thu Jun 11 2026..."
+    if(/^\d{1,2}\/\d{1,2}$/.test(s))return s;
     const dt=new Date(s);
     if(!isNaN(dt)){const d=dt.getDate(),m=dt.getMonth()+1;return(d<10?'0':'')+d+'/'+(m<10?'0':'')+m}
     return s;
   }
   function fmtTime(v){
     if(!v)return'';
+    // Excel time fraction (e.g. 0.6667 = 16:00)
+    if(typeof v==='number'&&v<1){
+      const totalMin=Math.round(v*1440);
+      const h=Math.floor(totalMin/60),m=totalMin%60;
+      return(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+    }
+    if(typeof v==='number'&&v>40000){
+      // Date+time serial: extract time fraction
+      const frac=v-Math.floor(v);
+      const totalMin=Math.round(frac*1440);
+      const h=Math.floor(totalMin/60),m=totalMin%60;
+      return(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+    }
     if(v instanceof Date){const h=v.getHours(),m=v.getMinutes();return(h<10?'0':'')+h+':'+(m<10?'0':'')+m}
     const s=String(v);
     if(/^\d{1,2}:\d{2}$/.test(s))return s;
-    // Try parsing
     const dt=new Date(s);
     if(!isNaN(dt)){const h=dt.getHours(),m=dt.getMinutes();return(h<10?'0':'')+h+':'+(m<10?'0':'')+m}
-    // SheetJS serial number for time (fraction of day)
-    if(typeof v==='number'&&v<1){const totalMin=Math.round(v*1440);const h=Math.floor(totalMin/60),m=totalMin%60;return(h<10?'0':'')+h+':'+(m<10?'0':'')+m}
     return s;
   }
   for(let r=21;r<=56;r++){
