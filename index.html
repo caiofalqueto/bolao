@@ -945,6 +945,8 @@ function renderRealResults(){
   </div>`;
 
   // Store ko16 HTML for modal
+  const leftMatches=ko16.filter(m=>m.side==='L');
+  const rightMatches=ko16.filter(m=>m.side==='R');
   window._ko16Html='';
   window._ko16Html+='<div class="bracket-grid">';
   window._ko16Html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+leftMatches.map(renderKoRow).join('')+'</div>';
