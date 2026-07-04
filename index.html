@@ -824,7 +824,7 @@ function renderRealResults(){
   }
 
   const totalKoPlayed=ko16.filter(m=>DATA.realMatchResults[m.num]).length;
-  document.getElementById('badgeMatches').textContent=`Grupos: ${groupPlayed}/36 · 16-avos: ${totalKoPlayed}/16`+(liveNums.size+koLive.size?` · ${liveNums.size+koLive.size} ao vivo`:'');
+  document.getElementById('badgeMatches').textContent=`16-avos: ${totalKoPlayed}/16 · Oitavas: ${oitPlayed}/8`+(oitLive.size?` · ${oitLive.size} ao vivo`:'');
 
   const FLAGCODES={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
   const flag=t=>{const c=FLAGCODES[t];return c?`<img src="https://flagcdn.com/20x15/${c}.png" alt="${t}" style="vertical-align:middle;margin:0 2px;width:20px;height:15px">`:''};
@@ -846,56 +846,100 @@ function renderRealResults(){
 
   let html='';
 
-  // ═══ 16-AVOS BRACKET ═══
-  html+='<div class="ko-section-title">16-avos de Final</div>';
-  const leftMatches=ko16.filter(m=>m.side==='L');
-  const rightMatches=ko16.filter(m=>m.side==='R');
+  // ═══ OITAVAS DE FINAL (main, with scoring) ═══
+  const oitavas=[
+    {num:89,date:'04/07',time:'14:00',home:'Canadá',away:'Marrocos',side:'L'},
+    {num:90,date:'04/07',time:'18:00',home:'Paraguai',away:'França',side:'L'},
+    {num:91,date:'06/07',time:'21:00',home:'EUA',away:'Bélgica',side:'L'},
+    {num:92,date:'06/07',time:'16:00',home:'Portugal',away:'Espanha',side:'L'},
+    {num:93,date:'05/07',time:'17:00',home:'Brasil',away:'Noruega',side:'R'},
+    {num:94,date:'05/07',time:'21:00',home:'México',away:'Inglaterra',side:'R'},
+    {num:95,date:'07/07',time:'17:00',home:'Suíça',away:'Colômbia',side:'R'},
+    {num:96,date:'07/07',time:'13:00',home:'Argentina',away:'Egito',side:'R'},
+  ];
+
+  // Detect live/today for oitavas
+  const oitLive=new Set(),oitToday=new Set();
+  for(const m of oitavas){
+    try{const[d,mo]=String(m.date).split('/').map(Number);const[h,mi]=String(m.time).split(':').map(Number);
+      const mDate=new Date(2026,mo-1,d);
+      if(mDate.getTime()===today.getTime())oitToday.add(m.num);
+      const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;
+      if(diff>=0&&diff<=120)oitLive.add(m.num);
+    }catch(e){}
+  }
+  const oitPlayed=oitavas.filter(m=>DATA.realMatchResults[m.num]).length;
+
+  const renderOitRow=(m)=>{
+    const real=DATA.realMatchResults[m.num];
+    const isLive=oitLive.has(m.num);
+    const isToday=oitToday.has(m.num);
+    const fH=flag(m.home),fA=flag(m.away);
+    const teamsStr=`<span class="r-teams"><span style="text-align:right">${fH} ${esc(m.home)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left">${esc(m.away)} ${fA}</span></span>`;
+    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
+    if(real){
+      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333">⚽ ${esc(real.penalty)}</span>`:'';
+      return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
+    }
+    if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
+    return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-score" style="color:var(--g300);background:none">—</span></div>`;
+  };
+
+  html+='<div class="ko-section-title">Oitavas de Final</div>';
+  const oitL=oitavas.filter(m=>m.side==='L'),oitR=oitavas.filter(m=>m.side==='R');
   html+='<div class="bracket-grid">';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+leftMatches.map(renderKoRow).join('')+'</div>';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+rightMatches.map(renderKoRow).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+oitL.map(renderOitRow).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+oitR.map(renderOitRow).join('')+'</div>';
   html+='</div>';
 
-  // ═══ OITAVAS DE FINAL (preview) ═══
-  const getWinner=(num)=>{
+  // ═══ QUARTAS DE FINAL (preview) ═══
+  const getOitWinner=(num)=>{
     const real=DATA.realMatchResults[num];
     if(!real)return null;
-    const m=ko16.find(x=>x.num===num);
+    const m=oitavas.find(x=>x.num===num);
     if(!m)return null;
     if(real.home>real.away)return m.home;
     if(real.away>real.home)return m.away;
     if(real.penalty)return real.penalty;
     return null;
   };
-  const oitavas=[
-    {num:89,m1:73,m2:75,date:'04/07',time:'14:00',side:'L'},
-    {num:90,m1:74,m2:77,date:'04/07',time:'18:00',side:'L'},
-    {num:91,m1:81,m2:82,date:'06/07',time:'21:00',side:'L'},
-    {num:92,m1:83,m2:84,date:'06/07',time:'16:00',side:'L'},
-    {num:93,m1:76,m2:78,date:'05/07',time:'17:00',side:'R'},
-    {num:94,m1:79,m2:80,date:'05/07',time:'21:00',side:'R'},
-    {num:95,m1:85,m2:87,date:'07/07',time:'17:00',side:'R'},
-    {num:96,m1:86,m2:88,date:'07/07',time:'13:00',side:'R'},
+  const quartas=[
+    {num:97,m1:89,m2:90,date:'09/07',time:'17:00',side:'L'},
+    {num:98,m1:91,m2:92,date:'10/07',time:'21:00',side:'L'},
+    {num:99,m1:93,m2:94,date:'09/07',time:'21:00',side:'R'},
+    {num:100,m1:95,m2:96,date:'10/07',time:'17:00',side:'R'},
   ];
-  html+='<div class="ko-section-title" style="margin-top:12px">Oitavas de Final</div>';
+  html+='<div class="ko-section-title" style="margin-top:12px">Quartas de Final</div>';
   html+='<div class="bracket-grid">';
-  const renderOitava=(o)=>{
-    const w1=getWinner(o.m1),w2=getWinner(o.m2);
-    const t1=w1||`Venc. Jogo ${o.m1}`;
-    const t2=w2||`Venc. Jogo ${o.m2}`;
+  const renderQuarta=(q)=>{
+    const w1=getOitWinner(q.m1),w2=getOitWinner(q.m2);
+    const t1=w1||`Venc. ${q.m1}`;const t2=w2||`Venc. ${q.m2}`;
     const f1=w1?flag(w1):'',f2=w2?flag(w2):'';
-    const cls1=w1?'':'color:var(--g400);font-style:italic';
-    const cls2=w2?'':'color:var(--g400);font-style:italic';
+    const s1=w1?'':'color:var(--g400);font-style:italic';
+    const s2=w2?'':'color:var(--g400);font-style:italic';
     return`<div class="result-row" style="border:1px dashed var(--g200)">
-      <span class="r-num">${o.num}</span>
-      <span class="r-datetime">${o.date}<br>${o.time}</span>
-      <span class="r-teams"><span style="text-align:right;${cls1}">${f1} ${esc(t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${cls2}">${esc(t2)} ${f2}</span></span>
+      <span class="r-num">${q.num}</span>
+      <span class="r-datetime">${q.date}<br>${q.time}</span>
+      <span class="r-teams"><span style="text-align:right;${s1}">${f1} ${esc(t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${s2}">${esc(t2)} ${f2}</span></span>
       <span class="r-score" style="color:var(--g300);background:none;font-size:.7rem">—</span>
     </div>`;
   };
-  const oitL=oitavas.filter(o=>o.side==='L'),oitR=oitavas.filter(o=>o.side==='R');
-  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+oitL.map(renderOitava).join('')+'</div>';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+oitR.map(renderOitava).join('')+'</div>';
+  const qL=quartas.filter(q=>q.side==='L'),qR=quartas.filter(q=>q.side==='R');
+  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+qL.map(renderQuarta).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+qR.map(renderQuarta).join('')+'</div>';
   html+='</div>';
+
+  // ═══ 16-AVOS (modal trigger — minimized) ═══
+  html+=`<div class="section-toggle" onclick="openGroupsModal('ko16')">
+    <h3>⚽ 16-avos de Final — ${totalKoPlayed} de 16 jogos</h3><span style="font-size:.75rem;color:var(--g400)">Toque para ver ▸</span>
+  </div>`;
+
+  // Store ko16 HTML for modal
+  window._ko16Html='';
+  window._ko16Html+='<div class="bracket-grid">';
+  window._ko16Html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+leftMatches.map(renderKoRow).join('')+'</div>';
+  window._ko16Html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+rightMatches.map(renderKoRow).join('')+'</div>';
+  window._ko16Html+='</div>';
 
   // ═══ FASE DE GRUPOS (modal trigger) ═══
   html+=`<div class="section-toggle" onclick="openGroupsModal('matches')">
@@ -1342,8 +1386,9 @@ function openAvatar(src,name){
 }
 
 function openGroupsModal(type){
-  const title=type==='matches'?'Fase de Grupos — Placares':'Classificação dos Grupos';
-  const content=type==='matches'?window._groupMatchesHtml:window._groupClassHtml;
+  const titles={'matches':'Fase de Grupos — Placares','classification':'Classificação dos Grupos','ko16':'16-avos de Final'};
+  const title=titles[type]||type;
+  const content=type==='matches'?window._groupMatchesHtml:type==='classification'?window._groupClassHtml:window._ko16Html;
   const ov=document.createElement('div');ov.className='modal-overlay';
   ov.onclick=e=>{if(e.target===ov)ov.remove()};
   ov.innerHTML=`<div class="modal-box">
