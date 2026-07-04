@@ -283,8 +283,8 @@
       <div class="card-header">
         <h2>Ranking Individual</h2>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
-        <span class="badge">2º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 2º Momento</span>
+        <span class="badge">3º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
@@ -297,8 +297,8 @@
       <div class="card-header">
         <h2>Ranking por Disciplina / Setor</h2>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
-        <span class="badge">2º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">3º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 2º Momento</span>
+        <span class="badge">3º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
@@ -603,7 +603,7 @@ function calculateAll(data){
 
   function calc(p){
     const bets=data.participantBets[p.name];if(!bets)return null;
-    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},ko16Scores:{},ko16Details:{},podium:null,totalPoints:0,matchPoints:0,groupPoints:0,ko16Points:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
+    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},ko16Scores:{},ko16Details:{},oitScores:{},oitDetails:{},podium:null,totalPoints:0,matchPoints:0,groupPoints:0,ko16Points:0,oitPoints:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
 
     for(let m=1;m<=36;m++){
       let bet=bets.matches[m];
@@ -647,7 +647,7 @@ function calculateAll(data){
         }else{r.ko16Scores[mn]=sc}
       }
     }
-    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;return r;
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;return r;
   }
 
   for(const p of regulars){const r=calc(p);if(r)all[p.name]=r}
@@ -693,7 +693,7 @@ function calculateAll(data){
     r.matchPoints=0;r.groupPoints=0;r.exactScores=0;r.correctDiffs=0;r.correctWinners=0;r.exactGroups=0;
     for(let m=1;m<=36;m++){const sc=r.matchScores[m];if(sc){r.matchPoints+=sc.points;if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++}}
     for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc){r.groupPoints+=sc.points;if(sc.type==='exact')r.exactGroups++}}
-    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;all[p.name]=r;
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;all[p.name]=r;
   }
 
   // Handle regular participants who didn't fill in group classifications
@@ -722,7 +722,7 @@ function calculateAll(data){
       }
       r.groupPoints=0;
       for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc)r.groupPoints+=sc.points}
-      r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points;
+      r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;
     }
   }
 
@@ -1002,7 +1002,7 @@ function renderRanking(ranked){
     }
   }
 
-  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="m1pts">1ºM</th><th class="sortable" data-sort="ko16Points">2ºM</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
+  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="m1pts">1ºM</th><th class="sortable" data-sort="ko16Points">2ºM</th><th class="sortable" data-sort="oitPoints">3ºM</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
     const pos=i+1;
     const pw=window._prizeMap[p.name];
@@ -1011,7 +1011,8 @@ function renderRanking(ranked){
     const prize=pw?`<strong style="color:${pw.color}">${fmt(pw.prize)}</strong>`:'';
     const m1pts=p.matchPoints+p.groupPoints;
     p.m1pts=m1pts; // store for sorting
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${m1pts}</td><td>${p.ko16Points||0}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    p.oitPoints=p.oitPoints||0;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${m1pts}</td><td>${p.ko16Points||0}</td><td>${p.oitPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
   window._rankedData=ranked;
@@ -1356,9 +1357,36 @@ function renderDetail(){
   }
   h+='</div>'; // close moment-card
 
-  // ═══ 3º ao 6º MOMENTO — disabled ═══
+  // ═══ 3º MOMENTO — Oitavas ═══
+  const has3m=r.oitScores&&Object.keys(r.oitScores).length>0;
+  h+=`<div class="moment-card${has3m?'':' disabled'}">
+    <div class="moment-header${has3m?'':''}" ${has3m?'onclick="toggleMoment(this)"':''}>
+      <div class="m-left"><span class="m-badge">3º Momento</span><span class="m-title">Oitavas de Final</span></div>
+      <span class="m-pts">${has3m?(r.oitPoints||0)+' pts':'🔒 Aguardando palpites'}</span>
+      ${has3m?'<span class="m-arrow">▼</span>':''}
+    </div>`;
+  if(has3m){
+    h+='<div class="moment-body">';
+    h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Nº</th><th style="text-align:left">Jogo</th><th>Palpite</th><th>Real</th><th>Pên.</th><th>Pts</th></tr></thead><tbody>`;
+    const oitNums=[89,90,93,94,92,91,96,95];
+    for(const mn of oitNums){
+      const det=r.oitDetails[mn]||{};
+      const sc=r.oitScores[mn];
+      const real=DATA.realMatchResults[mn];
+      const rc=sc?'sc-'+sc.type:'';
+      const bs=(det.betH!=null&&det.betA!=null)?`${det.betH} × ${det.betA}`:'—';
+      const rs=real?`${real.home} × ${real.away}`:'—';
+      const penStr=det.pen||'—';
+      const ph=sc?ptsBadge(sc.points,sc.type):'<span style="color:var(--g400)">—</span>';
+      h+=`<tr class="${rc}"><td>${mn}</td><td class="match-cell">${esc(det.homeTeam||'')} × ${esc(det.awayTeam||'')}</td><td><strong>${bs}</strong></td><td>${rs}</td><td style="font-size:.75rem">${esc(penStr)}</td><td>${ph}</td></tr>`;
+    }
+    h+='</tbody></table></div>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // ═══ 4º ao 6º MOMENTO — disabled ═══
   const futureMoments=[
-    {num:'3º',title:'Oitavas de Final',desc:'Após os 16-avos'},
     {num:'4º',title:'Quartas de Final',desc:'Após as oitavas'},
     {num:'5º',title:'Semifinais',desc:'Após as quartas'},
     {num:'6º',title:'Final e 3º Lugar',desc:'Após as semifinais'},
