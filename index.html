@@ -1530,6 +1530,21 @@ function showCraque(){
       if(!allMatchDates[key].nums.includes(m.num))allMatchDates[key].nums.push(m.num);
     }catch(e){}
   }
+  // Oitavas
+  const oitMatchesCraque=[
+    {num:89,date:'04/07'},{num:90,date:'04/07'},
+    {num:93,date:'05/07'},{num:94,date:'05/07'},
+    {num:92,date:'06/07'},{num:91,date:'06/07'},
+    {num:96,date:'07/07'},{num:95,date:'07/07'}
+  ];
+  for(const m of oitMatchesCraque){
+    if(!DATA.realMatchResults[m.num])continue;
+    try{const[d,mo]=String(m.date).split('/').map(Number);
+      const key=`${2026}-${mo}-${d}`;
+      if(!allMatchDates[key])allMatchDates[key]={date:new Date(2026,mo-1,d),nums:[]};
+      if(!allMatchDates[key].nums.includes(m.num))allMatchDates[key].nums.push(m.num);
+    }catch(e){}
+  }
 
   // Find today's games, or most recent game day
   const todayKey=`${2026}-${today.getMonth()+1}-${today.getDate()}`;
@@ -1548,7 +1563,7 @@ function showCraque(){
     const r=RESULTS.allResults[p.name];if(!r)continue;
     let pts=0;
     for(const mn of targetDay.nums){
-      const sc=r.matchScores[mn]||r.ko16Scores[mn];
+      const sc=r.matchScores[mn]||r.ko16Scores[mn]||r.oitScores[mn];
       if(sc&&sc.type!=='inherited')pts+=sc.points;
     }
     scores.push({name:p.name,pts});
@@ -1592,7 +1607,11 @@ function showCraque(){
       {num:76,home:'Brasil',away:'Japão'},{num:78,home:'Costa do Marfim',away:'Noruega'},
       {num:79,home:'México',away:'Equador'},{num:80,home:'Inglaterra',away:'Congo'},
       {num:85,home:'Suíça',away:'Argélia'},{num:86,home:'Argentina',away:'Cabo Verde'},
-      {num:87,home:'Colômbia',away:'Gana'},{num:88,home:'Austrália',away:'Egito'}
+      {num:87,home:'Colômbia',away:'Gana'},{num:88,home:'Austrália',away:'Egito'},
+      {num:89,home:'Canadá',away:'Marrocos'},{num:90,home:'Paraguai',away:'França'},
+      {num:93,home:'Brasil',away:'Noruega'},{num:94,home:'México',away:'Inglaterra'},
+      {num:92,home:'Portugal',away:'Espanha'},{num:91,home:'EUA',away:'Bélgica'},
+      {num:96,home:'Argentina',away:'Egito'},{num:95,home:'Suíça',away:'Colômbia'}
     ];
     const kf=ko16Full.find(x=>x.num===mn);
     return kf?`${kf.home} × ${kf.away}`:`Jogo ${mn}`;
