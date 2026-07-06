@@ -1223,27 +1223,93 @@ function renderSectorDetail(){
   });
   h+='</tbody></table></div>';
 
-  // Match-by-match comparison
+  // Podium summary
+  h+='<div class="detail-section-title">Palpites de Pódio do Setor</div>';
+  h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th style="text-align:left">Participante</th><th>🏆 Campeão</th><th>🥈 Vice</th><th>🥉 3º</th><th>4º</th></tr></thead><tbody>`;
+  const FC={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
+  const pFlg=t=>{const c=FC[t];return c?`<img src="https://flagcdn.com/16x12/${c}.png" style="vertical-align:middle;margin-right:3px">`:''};
+  members.forEach(p=>{
+    const r=RESULTS.allResults[p.name];
+    const pod=r&&r.podium?r.podium:null;
+    h+=`<tr><td class="name-cell">${esc(p.name.split(' ')[0]+' '+p.name.split(' ').slice(-1)[0])}</td>`;
+    if(pod){
+      h+=`<td>${pFlg(pod.campeon)}${esc(pod.campeon||'—')}</td>`;
+      h+=`<td>${pFlg(pod.vice)}${esc(pod.vice||'—')}</td>`;
+      h+=`<td>${pFlg(pod.terceiro)}${esc(pod.terceiro||'—')}</td>`;
+      h+=`<td>${pFlg(pod.quarto)}${esc(pod.quarto||'—')}</td>`;
+    }else{h+=`<td>—</td><td>—</td><td>—</td><td>—</td>`}
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+
+  // Match-by-match comparison — ALL phases
   h+='<div class="detail-section-title">Desempenho por Jogo</div>';
   h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Nº</th><th style="text-align:left">Jogo</th><th>Real</th>`;
   members.forEach(p=>{h+=`<th>${esc(p.name.split(' ')[0])}</th>`});
   h+='</tr></thead><tbody>';
+
+  // Groups
+  let hasGroupGames=false;
   for(const match of DATA.matches){
     const m=match.num;
     const real=DATA.realMatchResults[m];
     if(!real)continue;
+    if(!hasGroupGames){h+=`<tr><td colspan="${3+members.length}" style="background:var(--green-dark);color:white;font-weight:700;font-size:.75rem;padding:6px 10px">FASE DE GRUPOS</td></tr>`;hasGroupGames=true}
     h+=`<tr><td>${m}</td><td class="match-cell">${esc(match.home)} × ${esc(match.away)}</td><td><strong>${real.home}×${real.away}</strong></td>`;
     members.forEach(p=>{
       const r=RESULTS.allResults[p.name];
       const sc=r?r.matchScores[m]:null;
       const det=r?r.matchDetails[m]:null;
       if(!sc){h+='<td>—</td>';return}
-      const cls=sc.type==='exact'?'sc-exact':sc.type==='diff'?'sc-diff':sc.type==='winner'?'sc-winner':sc.type==='inherited'?'sc-inherited':'sc-wrong';
+      const cls='sc-'+sc.type;
       const betStr=(det&&det.betH!=null)?`${det.betH}×${det.betA}`:'—';
       h+=`<td class="${cls}" title="${betStr}">${ptsBadge(sc.points,sc.type)}</td>`;
     });
     h+='</tr>';
   }
+
+  // 16-avos
+  const ko16Nums=[74,73,75,77,81,82,83,84,76,78,79,80,85,86,87,88];
+  let hasKo16=false;
+  for(const mn of ko16Nums){
+    const real=DATA.realMatchResults[mn];
+    if(!real)continue;
+    if(!hasKo16){h+=`<tr><td colspan="${3+members.length}" style="background:#2C5F8A;color:white;font-weight:700;font-size:.75rem;padding:6px 10px">16-AVOS DE FINAL</td></tr>`;hasKo16=true}
+    h+=`<tr><td>${mn}</td><td class="match-cell">—</td><td><strong>${real.home}×${real.away}</strong></td>`;
+    members.forEach(p=>{
+      const r=RESULTS.allResults[p.name];
+      const sc=r?r.ko16Scores[mn]:null;
+      const det=r?r.ko16Details[mn]:null;
+      if(!sc){h+='<td>—</td>';return}
+      const cls='sc-'+sc.type;
+      const betStr=(det&&det.betH!=null)?`${det.betH}×${det.betA}`:'—';
+      h+=`<td class="${cls}" title="${betStr}">${ptsBadge(sc.points,sc.type)}</td>`;
+    });
+    h+='</tr>';
+  }
+
+  // Oitavas
+  const oitNums=[89,90,93,94,92,91,96,95];
+  const oitTeams={89:{h:'Canadá',a:'Marrocos'},90:{h:'Paraguai',a:'França'},93:{h:'Brasil',a:'Noruega'},94:{h:'México',a:'Inglaterra'},92:{h:'Portugal',a:'Espanha'},91:{h:'EUA',a:'Bélgica'},96:{h:'Argentina',a:'Egito'},95:{h:'Suíça',a:'Colômbia'}};
+  let hasOit=false;
+  for(const mn of oitNums){
+    const real=DATA.realMatchResults[mn];
+    if(!real)continue;
+    if(!hasOit){h+=`<tr><td colspan="${3+members.length}" style="background:#1B2A4A;color:white;font-weight:700;font-size:.75rem;padding:6px 10px">OITAVAS DE FINAL</td></tr>`;hasOit=true}
+    const t=oitTeams[mn]||{h:'',a:''};
+    h+=`<tr><td>${mn}</td><td class="match-cell">${esc(t.h)} × ${esc(t.a)}</td><td><strong>${real.home}×${real.away}</strong></td>`;
+    members.forEach(p=>{
+      const r=RESULTS.allResults[p.name];
+      const sc=r?r.oitScores[mn]:null;
+      const det=r?r.oitDetails[mn]:null;
+      if(!sc){h+='<td>—</td>';return}
+      const cls='sc-'+sc.type;
+      const betStr=(det&&det.betH!=null)?`${det.betH}×${det.betA}`:'—';
+      h+=`<td class="${cls}" title="${betStr}">${ptsBadge(sc.points,sc.type)}</td>`;
+    });
+    h+='</tr>';
+  }
+
   h+='</tbody></table></div>';
 
   ct.innerHTML=h;
