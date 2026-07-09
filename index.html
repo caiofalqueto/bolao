@@ -284,8 +284,8 @@
         <h2>Ranking Individual</h2>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 2º Momento</span>
-        <span class="badge">3º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 3º Momento</span>
+        <span class="badge">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
       </div>
@@ -298,8 +298,8 @@
         <h2>Ranking por Disciplina / Setor</h2>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 1º Momento</span>
         <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 2º Momento</span>
-        <span class="badge">3º Momento</span>
-        <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">4º Momento</span>
+        <span class="badge" style="background:rgba(0,100,0,.7);border-color:rgba(0,150,0,.6)">✓ 3º Momento</span>
+        <span class="badge">4º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">5º Momento</span>
         <span class="badge" style="text-decoration:line-through;color:#fff;border-color:rgba(220,50,50,.6);background:rgba(200,40,40,.7)">6º Momento</span>
       </div>
@@ -468,6 +468,16 @@ function processWorkbook(wb){
     }
   }
 
+  // Parse RESULTADOS: Matches - Quartas (rows 92-95)
+  for(let r=92;r<=95;r++){
+    const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
+    const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
+    const pen=cellAt(wsRes,'L',r);
+    if(rh!=null&&ra!=null&&rh!==''&&ra!==''){
+      data.realMatchResults[Number(mn)]={home:Number(rh),away:Number(ra),penalty:pen?String(pen).trim():''};
+    }
+  }
+
   // Auto-detect participant blocks across all non-system sheets
   for(const sheetName of wb.SheetNames){
     if(sheetName==='RESULTADOS'||sheetName.startsWith('_')||sheetName.includes('MOMENTO'))continue;
@@ -581,6 +591,35 @@ function processWorkbook(wb){
     }
   }
 
+  // ═══ Parse "4º MOMENTO" tab ═══
+  if(wb.Sheets['4º MOMENTO']){
+    const ws4m=wb.Sheets['4º MOMENTO'];
+    const range4=XLSX.utils.decode_range(ws4m['!ref']||'A1');
+    const maxRow4=range4.e.r+1;
+    for(let r=1;r<=maxRow4;r++){
+      const val=cellAt(ws4m,'A',r);
+      if(!val||!String(val).includes('NOME COMPLETO'))continue;
+      const pName=cellAt(ws4m,'D',r);if(!pName)continue;
+      const name=String(pName).trim();
+      if(!data.participantBets[name])data.participantBets[name]={matches:{},groups:{}};
+      const bets=data.participantBets[name];
+      bets.quartas={};
+      for(let j=0;j<4;j++){
+        const mr=r+6+j;
+        const mn=cellAt(ws4m,'A',mr);if(mn==null)continue;
+        const gh=cellAt(ws4m,'E',mr),ga=cellAt(ws4m,'G',mr);
+        const ht=String(cellAt(ws4m,'D',mr)||'').trim();
+        const at=String(cellAt(ws4m,'H',mr)||'').trim();
+        const pen=cellAt(ws4m,'I',mr);
+        bets.quartas[Math.round(Number(mn))]={
+          home:gh!=null?Number(gh):null,away:ga!=null?Number(ga):null,
+          homeTeam:ht,awayTeam:at,
+          penalty:pen?String(pen).trim():''
+        };
+      }
+    }
+  }
+
   if(errors.length>0)showError('Avisos:<br>'+errors.map(e=>'• '+e).join('<br>'));
 
   DATA=data;
@@ -633,7 +672,7 @@ function calculateAll(data){
 
   function calc(p){
     const bets=data.participantBets[p.name];if(!bets)return null;
-    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},ko16Scores:{},ko16Details:{},oitScores:{},oitDetails:{},podium:null,totalPoints:0,matchPoints:0,groupPoints:0,ko16Points:0,oitPoints:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
+    const r={matchScores:{},groupScores:{},matchDetails:{},groupDetails:{},ko16Scores:{},ko16Details:{},oitScores:{},oitDetails:{},quartasScores:{},quartasDetails:{},podium:null,totalPoints:0,matchPoints:0,groupPoints:0,ko16Points:0,oitPoints:0,quartasPoints:0,exactScores:0,correctDiffs:0,correctWinners:0,exactGroups:0,autoCount:0};
 
     for(let m=1;m<=36;m++){
       let bet=bets.matches[m];
@@ -697,7 +736,27 @@ function calculateAll(data){
         }else{r.oitScores[mn]=sc}
       }
     }
-    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;return r;
+    // Quartas scoring (5/3/2 + penalty +2)
+    if(bets.quartas){
+      const qfNums=[97,98,99,100];
+      for(const mn of qfNums){
+        const bet=bets.quartas[mn];
+        if(!bet||bet.home==null||bet.away==null){r.quartasScores[mn]=null;r.quartasDetails[mn]={betH:null,betA:null,pen:'',homeTeam:'',awayTeam:''};continue}
+        r.quartasDetails[mn]={betH:bet.home,betA:bet.away,pen:bet.penalty,homeTeam:bet.homeTeam,awayTeam:bet.awayTeam};
+        const real=data.realMatchResults[mn];
+        if(!real){r.quartasScores[mn]=null;continue}
+        const sc=scoreMatchQF(bet.home,bet.away,real.home,real.away);
+        if(sc){
+          r.quartasPoints+=sc.points;r.quartasScores[mn]=sc;
+          if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++;
+          if(real.penalty){
+            const betPen=bet.penalty||(bet.home>bet.away?bet.homeTeam:bet.awayTeam);
+            if(betPen&&betPen===real.penalty){r.quartasPoints+=2;r.quartasScores[mn]={points:sc.points+2,type:sc.type,penBonus:true}}
+          }
+        }else{r.quartasScores[mn]=sc}
+      }
+    }
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints+r.quartasPoints;return r;
   }
 
   // Oitavas score helper (4/2/1 scale)
@@ -707,6 +766,16 @@ function calculateAll(data){
     const bd=bh-ba,rd=rh-ra,bw=Math.sign(bd),rw=Math.sign(rd);
     if(bw===rw&&bd===rd)return{points:2,type:'diff'};
     if(bw===rw)return{points:1,type:'winner'};
+    return{points:0,type:'wrong'};
+  }
+
+  // Quartas score helper (5/3/2 scale)
+  function scoreMatchQF(bh,ba,rh,ra){
+    if(rh==null||ra==null||bh==null||ba==null||isNaN(bh)||isNaN(ba))return null;
+    if(bh===rh&&ba===ra)return{points:5,type:'exact'};
+    const bd=bh-ba,rd=rh-ra,bw=Math.sign(bd),rw=Math.sign(rd);
+    if(bw===rw&&bd===rd)return{points:3,type:'diff'};
+    if(bw===rw)return{points:2,type:'winner'};
     return{points:0,type:'wrong'};
   }
 
@@ -753,7 +822,7 @@ function calculateAll(data){
     r.matchPoints=0;r.groupPoints=0;r.exactScores=0;r.correctDiffs=0;r.correctWinners=0;r.exactGroups=0;
     for(let m=1;m<=36;m++){const sc=r.matchScores[m];if(sc){r.matchPoints+=sc.points;if(sc.type==='exact')r.exactScores++;if(sc.type==='diff')r.correctDiffs++;if(sc.type==='winner')r.correctWinners++}}
     for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc){r.groupPoints+=sc.points;if(sc.type==='exact')r.exactGroups++}}
-    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;all[p.name]=r;
+    r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints+r.quartasPoints;all[p.name]=r;
   }
 
   // Handle regular participants who didn't fill in group classifications
@@ -782,7 +851,7 @@ function calculateAll(data){
       }
       r.groupPoints=0;
       for(const g of data.groups){const sc=r.groupScores[g.letter];if(sc)r.groupPoints+=sc.points}
-      r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints;
+      r.totalPoints=r.matchPoints+r.groupPoints+r.ko16Points+r.oitPoints+r.quartasPoints;
     }
   }
 
@@ -938,7 +1007,8 @@ function renderRealResults(){
     }catch(e){}
   }
   const oitPlayed=oitavas.filter(m=>DATA.realMatchResults[m.num]).length;
-  document.getElementById('badgeMatches').textContent=`16-avos: ${totalKoPlayed}/16 · Oitavas: ${oitPlayed}/8`+(oitLive.size?` · ${oitLive.size} ao vivo`:'');
+  const qfPlayed=quartas.filter(q=>{const w1=getOitWinner(q.m1),w2=getOitWinner(q.m2);return DATA.realMatchResults[q.num]}).length;
+  document.getElementById('badgeMatches').textContent=`Oitavas: ${oitPlayed}/8 · Quartas: ${qfPlayed}/4`+(oitLive.size?` · ao vivo`:'');
 
   const renderOitRow=(m)=>{
     const real=DATA.realMatchResults[m.num];
@@ -1158,7 +1228,7 @@ function renderRanking(ranked){
     }
   }
 
-  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="m1pts">1ºM</th><th class="sortable" data-sort="ko16Points">2ºM</th><th class="sortable" data-sort="oitPoints">3ºM</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
+  let h=`<table class="tbl" id="rankingTable"><thead><tr><th>#</th><th style="text-align:left">Nome</th><th style="text-align:left">Disciplina</th><th class="sortable" data-sort="totalPoints">Total</th><th class="sortable" data-sort="m1pts">1ºM</th><th class="sortable" data-sort="ko16Points">2ºM</th><th class="sortable" data-sort="oitPoints">3ºM</th><th class="sortable" data-sort="quartasPoints">4ºM</th><th class="sortable" data-sort="exactScores">Exatos</th><th class="sortable" data-sort="correctDiffs">Saldos</th><th class="sortable" data-sort="correctWinners">Vencedor</th><th class="sortable" data-sort="autoCount">Autos</th><th class="sortable" data-sort="entryRound">Rodada</th><th>Prêmio</th></tr></thead><tbody>`;
   ranked.forEach((p,i)=>{
     const pos=i+1;
     const pw=window._prizeMap[p.name];
@@ -1167,8 +1237,8 @@ function renderRanking(ranked){
     const prize=pw?`<strong style="color:${pw.color}">${fmt(pw.prize)}</strong>`:'';
     const m1pts=p.matchPoints+p.groupPoints;
     p.m1pts=m1pts; // store for sorting
-    p.oitPoints=p.oitPoints||0;
-    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${m1pts}</td><td>${p.ko16Points||0}</td><td>${p.oitPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
+    p.oitPoints=p.oitPoints||0;p.quartasPoints=p.quartasPoints||0;
+    h+=`<tr><td class="pos-cell ${pc}" style="font-size:${pw?'1.2rem':'.85rem'}">${posLabel}</td><td class="name-cell"><div class="name-with-avatar"><img class="avatar-img" src="${avatarUrl(p.name)}" alt="${esc(p.name)}" onerror="avatarFallback(this)" onclick="openAvatar('${avatarUrl(p.name)}','${esc(p.name)}')" style="cursor:pointer">${esc(p.name)}</div></td><td class="sector-cell">${esc(p.sector).replace(/\//g,'/<wbr>')}</td><td class="pts-cell">${p.totalPoints}</td><td>${m1pts}</td><td>${p.ko16Points||0}</td><td>${p.oitPoints}</td><td>${p.quartasPoints}</td><td>${p.exactScores}</td><td>${p.correctDiffs}</td><td>${p.correctWinners}</td><td>${p.autoCount}</td><td>${p.entryRound>1?p.entryRound:'—'}</td><td>${prize}</td></tr>`;
   });
   document.getElementById('rankingBody').innerHTML=h+'</tbody></table>';
   window._rankedData=ranked;
@@ -1406,6 +1476,28 @@ function renderSectorDetail(){
     h+='</tr>';
   }
 
+  // Quartas
+  const qfNums=[97,98,99,100];
+  const qfTeams={97:{h:'Marrocos',a:'França'},98:{h:'Bélgica',a:'Espanha'},99:{h:'Noruega',a:'Inglaterra'},100:{h:'Suíça',a:'Argentina'}};
+  let hasQF=false;
+  for(const mn of qfNums){
+    const real=DATA.realMatchResults[mn];
+    if(!real)continue;
+    if(!hasQF){h+=`<tr><td colspan="${3+members.length}" style="background:#C8A951;color:#1B2A4A;font-weight:700;font-size:.75rem;padding:6px 10px">QUARTAS DE FINAL</td></tr>`;hasQF=true}
+    const t=qfTeams[mn]||{h:'',a:''};
+    h+=`<tr><td>${mn}</td><td class="match-cell">${esc(t.h)} × ${esc(t.a)}</td><td><strong>${real.home}×${real.away}</strong></td>`;
+    members.forEach(p=>{
+      const r=RESULTS.allResults[p.name];
+      const sc=r?r.quartasScores[mn]:null;
+      const det=r?r.quartasDetails[mn]:null;
+      if(!sc){h+='<td>—</td>';return}
+      const cls='sc-'+sc.type;
+      const betStr=(det&&det.betH!=null)?`${det.betH}×${det.betA}`:'—';
+      h+=`<td class="${cls}" title="${betStr}">${ptsBadge(sc.points,sc.type)}</td>`;
+    });
+    h+='</tr>';
+  }
+
   h+='</tbody></table></div>';
 
   ct.innerHTML=h;
@@ -1607,9 +1699,36 @@ function renderDetail(){
   }
   h+='</div>';
 
-  // ═══ 4º ao 6º MOMENTO — disabled ═══
+  // ═══ 4º MOMENTO — Quartas ═══
+  const has4m=r.quartasScores&&Object.keys(r.quartasScores).length>0;
+  h+=`<div class="moment-card${has4m?'':' disabled'}">
+    <div class="moment-header${has4m?'':''}" ${has4m?'onclick="toggleMoment(this)"':''}>
+      <div class="m-left"><span class="m-badge">4º Momento</span><span class="m-title">Quartas de Final</span></div>
+      <span class="m-pts">${has4m?(r.quartasPoints||0)+' pts':'🔒 Aguardando palpites'}</span>
+      ${has4m?'<span class="m-arrow">▼</span>':''}
+    </div>`;
+  if(has4m){
+    h+='<div class="moment-body">';
+    h+=`<div class="tbl-scroll"><table class="tbl"><thead><tr><th>Nº</th><th style="text-align:left">Jogo</th><th>Palpite</th><th>Real</th><th>Pên.</th><th>Pts</th></tr></thead><tbody>`;
+    const qfNums=[97,98,99,100];
+    for(const mn of qfNums){
+      const det=r.quartasDetails[mn]||{};
+      const sc=r.quartasScores[mn];
+      const real=DATA.realMatchResults[mn];
+      const rc=sc?'sc-'+sc.type:'';
+      const bs=(det.betH!=null&&det.betA!=null)?`${det.betH} × ${det.betA}`:'—';
+      const rs=real?`${real.home} × ${real.away}`:'—';
+      const penStr=det.pen||'—';
+      const ph=sc?ptsBadge(sc.points,sc.type):'<span style="color:var(--g400)">—</span>';
+      h+=`<tr class="${rc}"><td>${mn}</td><td class="match-cell">${esc(det.homeTeam||'')} × ${esc(det.awayTeam||'')}</td><td><strong>${bs}</strong></td><td>${rs}</td><td style="font-size:.75rem">${esc(penStr)}</td><td>${ph}</td></tr>`;
+    }
+    h+='</tbody></table></div>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // ═══ 5º ao 6º MOMENTO — disabled ═══
   const futureMoments=[
-    {num:'4º',title:'Quartas de Final',desc:'Após as oitavas'},
     {num:'5º',title:'Semifinais',desc:'Após as quartas'},
     {num:'6º',title:'Final e 3º Lugar',desc:'Após as semifinais'},
   ];
@@ -1707,6 +1826,18 @@ function showCraque(){
       if(!allMatchDates[key].nums.includes(m.num))allMatchDates[key].nums.push(m.num);
     }catch(e){}
   }
+  // Quartas
+  const qfMatchesCraque=[
+    {num:97,date:'09/07'},{num:98,date:'10/07'},{num:99,date:'10/07'},{num:100,date:'11/07'}
+  ];
+  for(const m of qfMatchesCraque){
+    if(!DATA.realMatchResults[m.num])continue;
+    try{const[d,mo]=String(m.date).split('/').map(Number);
+      const key=`${2026}-${mo}-${d}`;
+      if(!allMatchDates[key])allMatchDates[key]={date:new Date(2026,mo-1,d),nums:[]};
+      if(!allMatchDates[key].nums.includes(m.num))allMatchDates[key].nums.push(m.num);
+    }catch(e){}
+  }
 
   // Find today's games, or most recent game day
   const todayKey=`${2026}-${today.getMonth()+1}-${today.getDate()}`;
@@ -1725,7 +1856,7 @@ function showCraque(){
     const r=RESULTS.allResults[p.name];if(!r)continue;
     let pts=0;
     for(const mn of targetDay.nums){
-      const sc=r.matchScores[mn]||r.ko16Scores[mn]||r.oitScores[mn];
+      const sc=r.matchScores[mn]||r.ko16Scores[mn]||r.oitScores[mn]||r.quartasScores[mn];
       if(sc&&sc.type!=='inherited')pts+=sc.points;
     }
     scores.push({name:p.name,pts});
@@ -1773,7 +1904,9 @@ function showCraque(){
       {num:89,home:'Canadá',away:'Marrocos'},{num:90,home:'Paraguai',away:'França'},
       {num:93,home:'Brasil',away:'Noruega'},{num:94,home:'México',away:'Inglaterra'},
       {num:92,home:'Portugal',away:'Espanha'},{num:91,home:'EUA',away:'Bélgica'},
-      {num:96,home:'Argentina',away:'Egito'},{num:95,home:'Suíça',away:'Colômbia'}
+      {num:96,home:'Argentina',away:'Egito'},{num:95,home:'Suíça',away:'Colômbia'},
+      {num:97,home:'Marrocos',away:'França'},{num:98,home:'Bélgica',away:'Espanha'},
+      {num:99,home:'Noruega',away:'Inglaterra'},{num:100,home:'Suíça',away:'Argentina'}
     ];
     const kf=ko16Full.find(x=>x.num===mn);
     return kf?`${kf.home} × ${kf.away}`:`Jogo ${mn}`;
