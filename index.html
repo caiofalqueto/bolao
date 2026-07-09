@@ -478,6 +478,26 @@ function processWorkbook(wb){
     }
   }
 
+  // Parse RESULTADOS: Matches - Semis (rows 99-100)
+  for(let r=99;r<=100;r++){
+    const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
+    const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
+    const pen=cellAt(wsRes,'L',r);
+    if(rh!=null&&ra!=null&&rh!==''&&ra!==''){
+      data.realMatchResults[Number(mn)]={home:Number(rh),away:Number(ra),penalty:pen?String(pen).trim():''};
+    }
+  }
+
+  // Parse RESULTADOS: Matches - 3º Lugar + Final (rows 104-105)
+  for(let r=104;r<=105;r++){
+    const mn=cellAt(wsRes,'A',r);if(mn==null)continue;
+    const rh=cellAt(wsRes,'G',r),ra=cellAt(wsRes,'I',r);
+    const pen=cellAt(wsRes,'L',r);
+    if(rh!=null&&ra!=null&&rh!==''&&ra!==''){
+      data.realMatchResults[Number(mn)]={home:Number(rh),away:Number(ra),penalty:pen?String(pen).trim():''};
+    }
+  }
+
   // Auto-detect participant blocks across all non-system sheets
   for(const sheetName of wb.SheetNames){
     if(sheetName==='RESULTADOS'||sheetName.startsWith('_')||sheetName.includes('MOMENTO'))continue;
