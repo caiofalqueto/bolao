@@ -1030,27 +1030,16 @@ function renderRealResults(){
 
   const renderOitRow=(m)=>{
     const real=DATA.realMatchResults[m.num];
-    const isLive=oitLive.has(m.num);
-    const isToday=oitToday.has(m.num);
     const fH=flag(m.home),fA=flag(m.away);
     const teamsStr=`<span class="r-teams"><span style="text-align:right">${fH} ${esc(m.home)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left">${esc(m.away)} ${fA}</span></span>`;
-    if(isLive)return`<div class="result-row r-live"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
     if(real){
       const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333">⚽ ${esc(real.penalty)}</span>`:'';
       return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
-    if(isToday)return`<div class="result-row r-pending"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
     return`<div class="result-row"><span class="r-num">${m.num}</span><span class="r-datetime">${m.date}<br>${m.time}</span>${teamsStr}<span class="r-score" style="color:var(--g300);background:none">—</span></div>`;
   };
 
-  html+='<div class="ko-section-title">Oitavas de Final</div>';
-  const oitL=oitavas.filter(m=>m.side==='L'),oitR=oitavas.filter(m=>m.side==='R');
-  html+='<div class="bracket-grid">';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+oitL.map(renderOitRow).join('')+'</div>';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+oitR.map(renderOitRow).join('')+'</div>';
-  html+='</div>';
-
-  // ═══ QUARTAS DE FINAL (preview) ═══
+  // ═══ QUARTAS DE FINAL (main section) ═══
   const getOitWinner=(num)=>{
     const real=DATA.realMatchResults[num];
     if(!real)return null;
@@ -1068,24 +1057,48 @@ function renderRealResults(){
     {num:100,m1:95,m2:96,date:'11/07',time:'22:00',side:'R'},
   ];
   const qfPlayed=quartas.filter(q=>DATA.realMatchResults[q.num]).length;
-  document.getElementById('badgeMatches').textContent=`Oitavas: ${oitPlayed}/8 · Quartas: ${qfPlayed}/4`;
-  html+='<div class="ko-section-title" style="margin-top:12px">Quartas de Final</div>';
-  html+='<div class="bracket-grid">';
-  const getQWinner=(num,arr,getW)=>{
-    const real=DATA.realMatchResults[num];
-    if(!real)return null;
-    const m=arr.find(x=>x.num===num);
-    if(!m){
-      const w1=getW(m?.m1),w2=getW(m?.m2);
-      return null;
+  document.getElementById('badgeMatches').textContent=`Quartas: ${qfPlayed}/4`;
+
+  // Detect live/today for quartas
+  const qfLive=new Set(),qfToday=new Set();
+  for(const q of quartas){
+    const w1=getOitWinner(q.m1),w2=getOitWinner(q.m2);
+    if(!w1||!w2)continue;
+    try{const[d,mo]=String(q.date).split('/').map(Number);const[h,mi]=String(q.time).split(':').map(Number);
+      const mDate=new Date(2026,mo-1,d);
+      if(mDate.getTime()===today.getTime())qfToday.add(q.num);
+      const kick=new Date(2026,mo-1,d,h||0,mi||0);const diff=(now-kick)/60000;
+      if(diff>=0&&diff<=120)qfLive.add(q.num);
+    }catch(e){}
+  }
+
+  const renderQFRow=(item)=>{
+    const w1=getOitWinner(item.m1),w2=getOitWinner(item.m2);
+    const real=DATA.realMatchResults[item.num];
+    const t1=w1||`Venc. ${item.m1}`;const t2=w2||`Venc. ${item.m2}`;
+    const f1=w1?flag(w1):'',f2=w2?flag(w2):'';
+    const s1=w1?'':'color:var(--g400);font-style:italic';
+    const s2=w2?'':'color:var(--g400);font-style:italic';
+    const teamsStr=`<span class="r-teams"><span style="text-align:right;${s1}">${f1} ${esc(t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${s2}">${esc(t2)} ${f2}</span></span>`;
+    const isLive=qfLive.has(item.num);
+    const isToday=qfToday.has(item.num);
+    if(isLive)return`<div class="result-row r-live"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span>${teamsStr}<span class="r-live-badge">EM ANDAMENTO</span></div>`;
+    if(real){
+      const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333">⚽ ${esc(real.penalty)}</span>`:'';
+      return`<div class="result-row"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span>${teamsStr}<span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
-    const w1=getW(m.m1),w2=getW(m.m2);
-    if(!w1||!w2)return null;
-    if(real.home>real.away)return w1;
-    if(real.away>real.home)return w2;
-    if(real.penalty)return real.penalty;
-    return null;
+    if(isToday)return`<div class="result-row r-pending"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span>${teamsStr}<span class="r-pending-badge">PENDENTE</span></div>`;
+    return`<div class="result-row"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span>${teamsStr}<span class="r-score" style="color:var(--g300);background:none">—</span></div>`;
   };
+
+  html+='<div class="ko-section-title">Quartas de Final</div>';
+  html+='<div class="bracket-grid">';
+  const qL=quartas.filter(q=>q.side==='L'),qR=quartas.filter(q=>q.side==='R');
+  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+qL.map(renderQFRow).join('')+'</div>';
+  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+qR.map(renderQFRow).join('')+'</div>';
+  html+='</div>';
+
+  // ═══ SEMIFINAIS (preview) ═══
   const renderFuture=(item,getW)=>{
     const w1=getW(item.m1),w2=getW(item.m2);
     const real=DATA.realMatchResults[item.num];
@@ -1094,23 +1107,16 @@ function renderRealResults(){
     const s1=w1?'':'color:var(--g400);font-style:italic';
     const s2=w2?'':'color:var(--g400);font-style:italic';
     if(real){
-      const h1=w1||t1,h2=w2||t2;
       const penStr=real.penalty?`<br><span style="font-size:.65rem;color:#333">⚽ ${esc(real.penalty)}</span>`:'';
-      return`<div class="result-row"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span><span class="r-teams"><span style="text-align:right">${f1} ${esc(h1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left">${esc(h2)} ${f2}</span></span><span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
+      return`<div class="result-row"><span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span><span class="r-teams"><span style="text-align:right">${f1} ${esc(w1||t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left">${esc(w2||t2)} ${f2}</span></span><span class="r-score">${real.home} × ${real.away}${penStr}</span></div>`;
     }
     return`<div class="result-row" style="border:1px dashed var(--g200)">
-      <span class="r-num">${item.num}</span>
-      <span class="r-datetime">${item.date}<br>${item.time}</span>
+      <span class="r-num">${item.num}</span><span class="r-datetime">${item.date}<br>${item.time}</span>
       <span class="r-teams"><span style="text-align:right;${s1}">${f1} ${esc(t1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${s2}">${esc(t2)} ${f2}</span></span>
       <span class="r-score" style="color:var(--g300);background:none;font-size:.7rem">—</span>
     </div>`;
   };
-  const qL=quartas.filter(q=>q.side==='L'),qR=quartas.filter(q=>q.side==='R');
-  html+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+qL.map(q=>renderFuture(q,getOitWinner)).join('')+'</div>';
-  html+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+qR.map(q=>renderFuture(q,getOitWinner)).join('')+'</div>';
-  html+='</div>';
 
-  // ═══ SEMIFINAIS ═══
   const getQFWinner=(num)=>{
     const real=DATA.realMatchResults[num];
     if(!real)return null;
@@ -1184,6 +1190,17 @@ function renderRealResults(){
       <span class="r-score" style="${realF?'':'color:var(--g300);background:none;'}font-size:.8rem">${realF?realF.home+' × '+realF.away:'—'}</span>
     </div></div>`;
   html+='</div>';
+
+  // ═══ OITAVAS (modal trigger — minimized) ═══
+  html+=`<div class="section-toggle" onclick="openGroupsModal('oitavas')">
+    <h3>⚽ Oitavas de Final — ${oitPlayed} de 8 jogos</h3><span style="font-size:.75rem;color:var(--g400)">Toque para ver ▸</span>
+  </div>`;
+  // Store oitavas HTML for modal
+  window._oitavasHtml='<div class="bracket-grid">';
+  const oitL=oitavas.filter(m=>m.side==='L'),oitR=oitavas.filter(m=>m.side==='R');
+  window._oitavasHtml+='<div class="bracket-col"><div class="bracket-label">Chave A</div>'+oitL.map(renderOitRow).join('')+'</div>';
+  window._oitavasHtml+='<div class="bracket-col"><div class="bracket-label">Chave B</div>'+oitR.map(renderOitRow).join('')+'</div>';
+  window._oitavasHtml+='</div>';
 
   // ═══ 16-AVOS (modal trigger — minimized) ═══
   html+=`<div class="section-toggle" onclick="openGroupsModal('ko16')">
@@ -1787,9 +1804,9 @@ function openAvatar(src,name){
 }
 
 function openGroupsModal(type){
-  const titles={'matches':'Fase de Grupos — Placares','classification':'Classificação dos Grupos','ko16':'16-avos de Final'};
+  const titles={'matches':'Fase de Grupos — Placares','classification':'Classificação dos Grupos','ko16':'16-avos de Final','oitavas':'Oitavas de Final'};
   const title=titles[type]||type;
-  const content=type==='matches'?window._groupMatchesHtml:type==='classification'?window._groupClassHtml:window._ko16Html;
+  const content=type==='matches'?window._groupMatchesHtml:type==='classification'?window._groupClassHtml:type==='ko16'?window._ko16Html:type==='oitavas'?window._oitavasHtml:'';
   const ov=document.createElement('div');ov.className='modal-overlay';
   ov.onclick=e=>{if(e.target===ov)ov.remove()};
   ov.innerHTML=`<div class="modal-box">
