@@ -1027,8 +1027,6 @@ function renderRealResults(){
     }catch(e){}
   }
   const oitPlayed=oitavas.filter(m=>DATA.realMatchResults[m.num]).length;
-  const qfPlayed=quartas.filter(q=>{const w1=getOitWinner(q.m1),w2=getOitWinner(q.m2);return DATA.realMatchResults[q.num]}).length;
-  document.getElementById('badgeMatches').textContent=`Oitavas: ${oitPlayed}/8 · Quartas: ${qfPlayed}/4`+(oitLive.size?` · ao vivo`:'');
 
   const renderOitRow=(m)=>{
     const real=DATA.realMatchResults[m.num];
@@ -1069,6 +1067,8 @@ function renderRealResults(){
     {num:99,m1:93,m2:94,date:'10/07',time:'18:00',side:'R'},
     {num:100,m1:95,m2:96,date:'11/07',time:'22:00',side:'R'},
   ];
+  const qfPlayed=quartas.filter(q=>DATA.realMatchResults[q.num]).length;
+  document.getElementById('badgeMatches').textContent=`Oitavas: ${oitPlayed}/8 · Quartas: ${qfPlayed}/4`;
   html+='<div class="ko-section-title" style="margin-top:12px">Quartas de Final</div>';
   html+='<div class="bracket-grid">';
   const getQWinner=(num,arr,getW)=>{
