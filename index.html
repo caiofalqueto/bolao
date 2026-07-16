@@ -1393,59 +1393,6 @@ function renderRealResults(){
     </div>`;
   };
 
-  // ═══ FINAL + 3º LUGAR ═══
-  const getSFWinner=(num)=>{
-    const real=DATA.realMatchResults[num];
-    if(!real)return null;
-    const s=semis.find(x=>x.num===num);if(!s)return null;
-    const w1=getQFWinner(s.m1),w2=getQFWinner(s.m2);
-    if(!w1||!w2)return null;
-    if(real.home>real.away)return w1;
-    if(real.away>real.home)return w2;
-    if(real.penalty)return real.penalty;
-    return null;
-  };
-  const getSFLoser=(num)=>{
-    const real=DATA.realMatchResults[num];
-    if(!real)return null;
-    const s=semis.find(x=>x.num===num);if(!s)return null;
-    const w1=getQFWinner(s.m1),w2=getQFWinner(s.m2);
-    if(!w1||!w2)return null;
-    const winner=getSFWinner(num);
-    return winner===w1?w2:w1;
-  };
-  const finalMatch={num:104,m1:101,m2:102,date:'19/07',time:'16:00'};
-  const terceiroMatch={num:103,m1:101,m2:102,date:'18/07',time:'18:00'};
-  html+='<div class="ko-section-title" style="margin-top:12px">Decisões</div>';
-  html+='<div class="bracket-grid">';
-  // 3rd place
-  const l1=getSFLoser(101),l2=getSFLoser(102);
-  const t3_1=l1||`Perd. SF1`;const t3_2=l2||`Perd. SF2`;
-  const f3_1=l1?flag(l1):'',f3_2=l2?flag(l2):'';
-  const s3_1=l1?'':'color:var(--g400);font-style:italic';
-  const s3_2=l2?'':'color:var(--g400);font-style:italic';
-  const real3=DATA.realMatchResults[103];
-  html+=`<div class="bracket-col"><div class="bracket-label">Disputa 3º Lugar</div>
-    <div class="result-row" style="border:1px dashed var(--g200)">
-      <span class="r-num">103</span><span class="r-datetime">18/07<br>18:00</span>
-      <span class="r-teams"><span style="text-align:right;${s3_1}">${f3_1} ${esc(t3_1)}</span><span style="text-align:center;color:var(--g400);font-weight:700">×</span><span style="text-align:left;${s3_2}">${esc(t3_2)} ${f3_2}</span></span>
-      <span class="r-score" style="color:var(--g300);background:none;font-size:.7rem">${real3?real3.home+' × '+real3.away:'—'}</span>
-    </div></div>`;
-  // Final
-  const fw1=getSFWinner(101),fw2=getSFWinner(102);
-  const tf1=fw1||`Venc. SF1`;const tf2=fw2||`Venc. SF2`;
-  const ff1=fw1?flag(fw1):'',ff2=fw2?flag(fw2):'';
-  const sf1=fw1?'':'color:var(--g400);font-style:italic';
-  const sf2=fw2?'':'color:var(--g400);font-style:italic';
-  const realF=DATA.realMatchResults[104];
-  html+=`<div class="bracket-col"><div class="bracket-label">🏆 Final</div>
-    <div class="result-row" style="border:2px solid var(--gold);background:var(--gold-bg)">
-      <span class="r-num">104</span><span class="r-datetime">19/07<br>16:00</span>
-      <span class="r-teams"><span style="text-align:right;${sf1}">${ff1} ${esc(tf1)}</span><span style="text-align:center;color:var(--gold);font-weight:900;font-size:1rem">×</span><span style="text-align:left;${sf2}">${esc(tf2)} ${ff2}</span></span>
-      <span class="r-score" style="${realF?'':'color:var(--g300);background:none;'}font-size:.8rem">${realF?realF.home+' × '+realF.away:'—'}</span>
-    </div></div>`;
-  html+='</div>';
-
   // ═══ QUARTAS (modal trigger — minimized) ═══
   html+=`<div class="section-toggle" onclick="openGroupsModal('quartas')">
     <h3>⚽ Quartas de Final — ${qfPlayed} de 4 jogos</h3><span style="font-size:.75rem;color:var(--g400)">Toque para ver ▸</span>
