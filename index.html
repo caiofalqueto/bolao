@@ -995,9 +995,18 @@ function calculateAll(data){
     let pts=0;const pos=['campeon','vice','terceiro','quarto'];
     const posVal={campeon:20,vice:12,terceiro:8,quarto:5};
     const used={};
-    // Exact matches first (only for determined positions)
+    // Build full top4 including finalists from semi results
+    const sfT2={101:{home:'França',away:'Espanha'},102:{home:'Inglaterra',away:'Argentina'}};
+    const gSFW2=(mn)=>{const res=DATA.realMatchResults[mn];if(!res)return null;const t=sfT2[mn];if(!t)return null;if(res.home>res.away)return t.home;if(res.away>res.home)return t.away;if(res.penalty)return res.penalty;return null};
+    const allTop4=new Set();
+    const fw1=gSFW2(101),fw2=gSFW2(102);
+    if(fw1)allTop4.add(fw1);if(fw2)allTop4.add(fw2);
+    if(realPodium.terceiro)allTop4.add(realPodium.terceiro);if(realPodium.quarto)allTop4.add(realPodium.quarto);
+    if(realPodium.campeon)allTop4.add(realPodium.campeon);if(realPodium.vice)allTop4.add(realPodium.vice);
+    const realTop4=[...allTop4];
+    // Exact matches (only for determined positions)
     for(const p of pos){
-      if(!realPodium[p])continue; // position not yet determined
+      if(!realPodium[p])continue;
       if(pod[p]&&pod[p]===realPodium[p]){pts+=posVal[p];used[p]=true}
     }
     // Inversions: campeon/vice (only if both determined)
@@ -1008,11 +1017,9 @@ function calculateAll(data){
     if(realPodium.terceiro&&realPodium.quarto&&!used.terceiro&&!used.quarto&&pod.terceiro&&pod.quarto){
       if(pod.terceiro===realPodium.quarto&&pod.quarto===realPodium.terceiro){pts+=7;used.terceiro=true;used.quarto=true}
     }
-    // Top 4 generic (2 pts each, only for determined positions)
-    const realTop4=[realPodium.campeon,realPodium.vice,realPodium.terceiro,realPodium.quarto].filter(Boolean);
+    // Top 4 generic (2 pts each)
     for(const p of pos){
       if(used[p])continue;
-      if(!realPodium[p]&&!realTop4.length)continue; // can't evaluate yet
       if(pod[p]&&realTop4.includes(pod[p])){pts+=2;used[p]=true}
     }
     return pts;
@@ -1908,72 +1915,62 @@ function renderDetail(){
       const rp=r.realPodium,pod=r.podium;
       const FC2={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
       const pF2=t=>{const c=FC2[t];return c?`<img src="https://flagcdn.com/16x12/${c}.png" style="vertical-align:middle;margin-right:3px">`:''};
-      const realTop4=[rp.campeon,rp.vice,rp.terceiro,rp.quarto].filter(Boolean);
-      const posLabel={campeon:'Campeão',vice:'Vice',terceiro:'3º Lugar',quarto:'4º Lugar'};
-      const realPosOf=t=>{if(t===rp.campeon)return'Campeão';if(t===rp.vice)return'Vice';if(t===rp.terceiro)return'3º Lugar';if(t===rp.quarto)return'4º Lugar';return null};
       
-      // Detect inversions
+      // Build complete known top4 including finalists
+      const sfTeamsK={101:{home:'França',away:'Espanha'},102:{home:'Inglaterra',away:'Argentina'}};
+      const getSFW2=(mn)=>{const res=DATA.realMatchResults[mn];if(!res)return null;const t=sfTeamsK[mn];if(!t)return null;if(res.home>res.away)return t.home;if(res.away>res.home)return t.away;if(res.penalty)return res.penalty;return null};
+      const knownTop4=new Set();
+      const f1=getSFW2(101),f2=getSFW2(102);
+      if(f1)knownTop4.add(f1);if(f2)knownTop4.add(f2);
+      if(rp.terceiro)knownTop4.add(rp.terceiro);if(rp.quarto)knownTop4.add(rp.quarto);
+      if(rp.campeon)knownTop4.add(rp.campeon);if(rp.vice)knownTop4.add(rp.vice);
+      
+      const posLabel={campeon:'Campeão',vice:'Vice',terceiro:'3º Lugar',quarto:'4º Lugar'};
+      const realPosOf=t=>{if(t===rp.campeon)return'Campeão';if(t===rp.vice)return'Vice';if(t===rp.terceiro)return'3º Lugar';if(t===rp.quarto)return'4º Lugar';if(knownTop4.has(t))return'Finalista (1º ou 2º)';return null};
       const invCV=pod.campeon&&pod.vice&&rp.campeon&&rp.vice&&pod.campeon===rp.vice&&pod.vice===rp.campeon;
       const invTQ=pod.terceiro&&pod.quarto&&rp.terceiro&&rp.quarto&&pod.terceiro===rp.quarto&&pod.quarto===rp.terceiro;
       
       h+=`<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;margin-bottom:16px">
         <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:12px;letter-spacing:.05em">DETALHAMENTO DO PÓDIO</div>`;
       
-      const posData=[
-        {key:'campeon',pts:20,emoji:'🏆',pair:'vice',pairKey:'campeon'},
-        {key:'vice',pts:12,emoji:'🥈',pair:'campeon',pairKey:'vice'},
-        {key:'terceiro',pts:8,emoji:'🥉',pair:'quarto',pairKey:'terceiro'},
-        {key:'quarto',pts:5,emoji:'4️⃣',pair:'terceiro',pairKey:'quarto'}
-      ];
+      const posData=[{key:'campeon',pts:20,emoji:'🏆'},{key:'vice',pts:12,emoji:'🥈'},{key:'terceiro',pts:8,emoji:'🥉'},{key:'quarto',pts:5,emoji:'4️⃣'}];
       
       for(const p of posData){
         const bet=pod[p.key];
         const real=rp[p.key];
         const betStr=bet?`${pF2(bet)}${esc(bet)}`:'<span style="color:var(--g400)">—</span>';
         const realStr=real?`${pF2(real)}${esc(real)}`:'';
-        
         let pts=0,justificativa='',cor='var(--g400)',bgRow='transparent';
         
-        if(!real){
-          justificativa='⏳ Aguardando resultado da final';
-          cor='var(--g400)';
-        } else if(bet===real){
-          // Exact match
+        if(!real&&(p.key==='campeon'||p.key==='vice')&&!rp.campeon){
+          if(bet&&knownTop4.has(bet)){
+            const realPos=realPosOf(bet);
+            pts=2;
+            justificativa=`⏳ Final não jogada. ${esc(bet)} é ${realPos}, confirmado no top 4 → 2 pts provisórios`;
+            cor='#FFD54F';bgRow='rgba(255,213,79,.05)';
+          } else if(bet&&!knownTop4.has(bet)){
+            pts=0;
+            justificativa=`❌ ${esc(bet)} não está entre os 4 semifinalistas`;
+            cor='#FF5252';bgRow='rgba(255,82,82,.04)';
+          } else {justificativa='⏳ Aguardando resultado da final';}
+        } else if(real&&bet===real){
           pts=p.pts;
-          justificativa=`✅ Acertou! ${esc(bet)} é ${posLabel[p.key]} → ${p.pts} pts`;
+          justificativa=`✅ Acertou a posição exata! ${esc(bet)} é ${posLabel[p.key]} → ${p.pts} pts`;
           cor='#00E676';bgRow='rgba(0,230,118,.05)';
         } else if((p.key==='campeon'||p.key==='vice')&&invCV){
-          // Campeão/Vice inversion
-          if(p.key==='campeon'){
-            pts=16;
-            justificativa=`🔄 Palpitou ${esc(pod.campeon)} Campeão e ${esc(pod.vice)} Vice, mas estão invertidos. Acertou os 2 finalistas → 16 pts (50% de 32)`;
-            cor='#82B1FF';bgRow='rgba(68,138,255,.05)';
-          } else {
-            pts=0;
-            justificativa=`↳ Pontuação da inversão Campeão/Vice já contabilizada acima`;
-            cor='rgba(130,177,255,.5)';
-          }
+          if(p.key==='campeon'){pts=16;justificativa=`🔄 ${esc(pod.campeon)} e ${esc(pod.vice)} invertidos. Acertou os 2 finalistas → 16 pts (50% de ${20+12})`;cor='#82B1FF';bgRow='rgba(68,138,255,.05)';}
+          else{pts=0;justificativa=`↳ Inversão C/V contabilizada acima`;cor='rgba(130,177,255,.5)';}
         } else if((p.key==='terceiro'||p.key==='quarto')&&invTQ){
-          // 3rd/4th inversion
-          if(p.key==='terceiro'){
-            pts=7;
-            justificativa=`🔄 Palpitou ${esc(pod.terceiro)} em 3º e ${esc(pod.quarto)} em 4º, mas estão invertidos. Acertou os 2 da disputa do 3ºL → 7 pts (50% de 13)`;
-            cor='#82B1FF';bgRow='rgba(68,138,255,.05)';
-          } else {
-            pts=0;
-            justificativa=`↳ Pontuação da inversão 3º/4º já contabilizada acima`;
-            cor='rgba(130,177,255,.5)';
-          }
-        } else if(bet&&realTop4.includes(bet)){
-          // Top 4 generic
+          if(p.key==='terceiro'){pts=7;justificativa=`🔄 ${esc(pod.terceiro)} e ${esc(pod.quarto)} invertidos na disputa do 3ºL → 7 pts (50% de ${8+5})`;cor='#82B1FF';bgRow='rgba(68,138,255,.05)';}
+          else{pts=0;justificativa=`↳ Inversão 3º/4º contabilizada acima`;cor='rgba(130,177,255,.5)';}
+        } else if(bet&&knownTop4.has(bet)){
           const realPos=realPosOf(bet);
           pts=2;
-          justificativa=`🎯 Palpitou ${esc(bet)} como ${posLabel[p.key]}, mas ${esc(bet)} ficou em ${realPos} → 2 pts (acertou top 4)`;
+          justificativa=`🎯 Palpitou ${esc(bet)} como ${posLabel[p.key]}, mas ficou como ${realPos} → 2 pts (acertou top 4)`;
           cor='#FFD54F';bgRow='rgba(255,213,79,.05)';
         } else if(bet){
-          // Wrong
           pts=0;
-          justificativa=`❌ Palpitou ${esc(bet)} como ${posLabel[p.key]}, mas ${esc(bet)} não ficou no top 4`;
+          justificativa=`❌ ${esc(bet)} não ficou entre os 4 primeiros`;
           cor='#FF5252';bgRow='rgba(255,82,82,.04)';
         }
         
@@ -1983,11 +1980,10 @@ function renderDetail(){
             <div style="font-size:.78rem;color:var(--g700);margin-bottom:2px">Palpite: ${betStr}${real?' · Real: '+realStr:''}</div>
             <div style="font-size:.72rem;color:${cor}">${justificativa}</div>
           </div>
-          <div style="font-size:1rem;font-weight:800;color:${cor};min-width:32px;text-align:center">${real!==undefined&&real!==null?pts:'—'}</div>
+          <div style="font-size:1rem;font-weight:800;color:${cor};min-width:32px;text-align:center">${pts}</div>
         </div>`;
       }
       
-      // Total
       h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;background:rgba(255,215,0,.08);border-radius:0 0 6px 6px;margin-top:2px">
         <span style="font-weight:800;color:var(--gold);font-size:.85rem">TOTAL PÓDIO</span>
         <span style="font-weight:800;color:var(--gold);font-size:1.1rem">${r.podiumPoints} <span style="font-size:.7rem;font-weight:400;color:var(--g400)">de 45 pts</span></span>
