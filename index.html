@@ -1017,9 +1017,12 @@ function calculateAll(data){
     if(realPodium.terceiro&&realPodium.quarto&&!used.terceiro&&!used.quarto&&pod.terceiro&&pod.quarto){
       if(pod.terceiro===realPodium.quarto&&pod.quarto===realPodium.terceiro){pts+=7;used.terceiro=true;used.quarto=true}
     }
-    // Top 4 generic (2 pts each)
+    // Top 4 generic (2 pts each) - but NOT for finalists in campeon/vice slots (pending higher score)
+    const isFinalistScore=t=>t&&(fw1===t||fw2===t);
     for(const p of pos){
       if(used[p])continue;
+      // If campeon/vice position not yet determined AND bet team is a finalist, skip (could score higher)
+      if((p==='campeon'||p==='vice')&&!realPodium.campeon&&isFinalistScore(pod[p]))continue;
       if(pod[p]&&realTop4.includes(pod[p])){pts+=2;used[p]=true}
     }
     return pts;
@@ -1942,11 +1945,16 @@ function renderDetail(){
         const realStr=real?`${pF2(real)}${esc(real)}`:'';
         let pts=0,justificativa='',cor='var(--g400)',bgRow='transparent';
         
+        const isFinalist=t=>t&&(t===f1||t===f2);
         if(!real&&(p.key==='campeon'||p.key==='vice')&&!rp.campeon){
-          if(bet&&knownTop4.has(bet)){
+          if(bet&&isFinalist(bet)){
+            pts=0;
+            justificativa=`⏳ ${esc(bet)} está na final. Aguardando resultado para definir pontuação (pode ser exato, inversão ou top 4)`;
+            cor='var(--g400)';
+          } else if(bet&&knownTop4.has(bet)){
             const realPos=realPosOf(bet);
             pts=2;
-            justificativa=`⏳ Final não jogada. ${esc(bet)} é ${realPos}, confirmado no top 4 → 2 pts provisórios`;
+            justificativa=`🎯 ${esc(bet)} ficou como ${realPos}, não é finalista → 2 pts (top 4 já definido)`;
             cor='#FFD54F';bgRow='rgba(255,213,79,.05)';
           } else if(bet&&!knownTop4.has(bet)){
             pts=0;
