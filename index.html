@@ -1908,86 +1908,90 @@ function renderDetail(){
       const rp=r.realPodium,pod=r.podium;
       const FC2={'Alemanha':'de','África do Sul':'za','Argélia':'dz','Argentina':'ar','Austrália':'au','Áustria':'at','Bélgica':'be','Bósnia':'ba','Brasil':'br','Cabo Verde':'cv','Canadá':'ca','Colômbia':'co','Congo':'cd','Costa do Marfim':'ci','Croácia':'hr','Egito':'eg','Equador':'ec','Espanha':'es','EUA':'us','França':'fr','Gana':'gh','Holanda':'nl','Inglaterra':'gb-eng','Japão':'jp','Marrocos':'ma','México':'mx','Noruega':'no','Paraguai':'py','Portugal':'pt','Senegal':'sn','Suécia':'se','Suíça':'ch'};
       const pF2=t=>{const c=FC2[t];return c?`<img src="https://flagcdn.com/16x12/${c}.png" style="vertical-align:middle;margin-right:3px">`:''};
-      
-      // Calculate individual position scores
-      const posData=[
-        {key:'campeon',label:'Campeão',pts:20,emoji:'🏆'},
-        {key:'vice',label:'Vice',pts:12,emoji:'🥈'},
-        {key:'terceiro',label:'3º Lugar',pts:8,emoji:'🥉'},
-        {key:'quarto',label:'4º Lugar',pts:5,emoji:'4️⃣'}
-      ];
+      const realTop4=[rp.campeon,rp.vice,rp.terceiro,rp.quarto].filter(Boolean);
+      const posLabel={campeon:'Campeão',vice:'Vice',terceiro:'3º Lugar',quarto:'4º Lugar'};
+      const realPosOf=t=>{if(t===rp.campeon)return'Campeão';if(t===rp.vice)return'Vice';if(t===rp.terceiro)return'3º Lugar';if(t===rp.quarto)return'4º Lugar';return null};
       
       // Detect inversions
       const invCV=pod.campeon&&pod.vice&&rp.campeon&&rp.vice&&pod.campeon===rp.vice&&pod.vice===rp.campeon;
       const invTQ=pod.terceiro&&pod.quarto&&rp.terceiro&&rp.quarto&&pod.terceiro===rp.quarto&&pod.quarto===rp.terceiro;
-      const realTop4=[rp.campeon,rp.vice,rp.terceiro,rp.quarto].filter(Boolean);
       
       h+=`<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;margin-bottom:16px">
-        <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:10px;letter-spacing:.05em">DETALHAMENTO DO PÓDIO</div>
-        <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-          <thead><tr style="color:var(--g400);font-size:.7rem;text-transform:uppercase">
-            <th style="text-align:left;padding:4px 8px">Posição</th>
-            <th style="text-align:left;padding:4px 8px">Palpite</th>
-            <th style="text-align:left;padding:4px 8px">Real</th>
-            <th style="text-align:center;padding:4px 8px">Pts</th>
-            <th style="text-align:left;padding:4px 8px">Critério</th>
-          </tr></thead><tbody>`;
+        <div style="font-size:.75rem;font-weight:700;color:var(--gold);margin-bottom:12px;letter-spacing:.05em">DETALHAMENTO DO PÓDIO</div>`;
+      
+      const posData=[
+        {key:'campeon',pts:20,emoji:'🏆',pair:'vice',pairKey:'campeon'},
+        {key:'vice',pts:12,emoji:'🥈',pair:'campeon',pairKey:'vice'},
+        {key:'terceiro',pts:8,emoji:'🥉',pair:'quarto',pairKey:'terceiro'},
+        {key:'quarto',pts:5,emoji:'4️⃣',pair:'terceiro',pairKey:'quarto'}
+      ];
       
       for(const p of posData){
-        const bet=pod[p.key]||'—';
+        const bet=pod[p.key];
         const real=rp[p.key];
-        const realStr=real?`${pF2(real)}${esc(real)}`:'<span style="color:var(--g400)">Pendente</span>';
-        const betStr=pod[p.key]?`${pF2(pod[p.key])}${esc(pod[p.key])}`:'—';
+        const betStr=bet?`${pF2(bet)}${esc(bet)}`:'<span style="color:var(--g400)">—</span>';
+        const realStr=real?`${pF2(real)}${esc(real)}`:'';
         
-        let pts=0,criterio='—',cor='var(--g400)';
-        if(real){
-          if(pod[p.key]===real){
-            pts=p.pts;criterio='✅ Exato';cor='#00E676';
-          } else if((p.key==='campeon'&&invCV)||(p.key==='vice'&&invCV)){
-            pts=p.key==='campeon'?0:0; // inversão conta como bloco
-            criterio='🔄 Inversão C/V';cor='#82B1FF';
-          } else if((p.key==='terceiro'&&invTQ)||(p.key==='quarto'&&invTQ)){
-            criterio='🔄 Inversão 3/4';cor='#82B1FF';
-          } else if(pod[p.key]&&realTop4.includes(pod[p.key])){
-            pts=2;criterio='🎯 Top 4';cor='#FFD54F';
-          } else if(pod[p.key]){
-            pts=0;criterio='❌ Errou';cor='#FF5252';
+        let pts=0,justificativa='',cor='var(--g400)',bgRow='transparent';
+        
+        if(!real){
+          justificativa='⏳ Aguardando resultado da final';
+          cor='var(--g400)';
+        } else if(bet===real){
+          // Exact match
+          pts=p.pts;
+          justificativa=`✅ Acertou! ${esc(bet)} é ${posLabel[p.key]} → ${p.pts} pts`;
+          cor='#00E676';bgRow='rgba(0,230,118,.05)';
+        } else if((p.key==='campeon'||p.key==='vice')&&invCV){
+          // Campeão/Vice inversion
+          if(p.key==='campeon'){
+            pts=16;
+            justificativa=`🔄 Palpitou ${esc(pod.campeon)} Campeão e ${esc(pod.vice)} Vice, mas estão invertidos. Acertou os 2 finalistas → 16 pts (50% de 32)`;
+            cor='#82B1FF';bgRow='rgba(68,138,255,.05)';
+          } else {
+            pts=0;
+            justificativa=`↳ Pontuação da inversão Campeão/Vice já contabilizada acima`;
+            cor='rgba(130,177,255,.5)';
           }
+        } else if((p.key==='terceiro'||p.key==='quarto')&&invTQ){
+          // 3rd/4th inversion
+          if(p.key==='terceiro'){
+            pts=7;
+            justificativa=`🔄 Palpitou ${esc(pod.terceiro)} em 3º e ${esc(pod.quarto)} em 4º, mas estão invertidos. Acertou os 2 da disputa do 3ºL → 7 pts (50% de 13)`;
+            cor='#82B1FF';bgRow='rgba(68,138,255,.05)';
+          } else {
+            pts=0;
+            justificativa=`↳ Pontuação da inversão 3º/4º já contabilizada acima`;
+            cor='rgba(130,177,255,.5)';
+          }
+        } else if(bet&&realTop4.includes(bet)){
+          // Top 4 generic
+          const realPos=realPosOf(bet);
+          pts=2;
+          justificativa=`🎯 Palpitou ${esc(bet)} como ${posLabel[p.key]}, mas ${esc(bet)} ficou em ${realPos} → 2 pts (acertou top 4)`;
+          cor='#FFD54F';bgRow='rgba(255,213,79,.05)';
+        } else if(bet){
+          // Wrong
+          pts=0;
+          justificativa=`❌ Palpitou ${esc(bet)} como ${posLabel[p.key]}, mas ${esc(bet)} não ficou no top 4`;
+          cor='#FF5252';bgRow='rgba(255,82,82,.04)';
         }
         
-        h+=`<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
-          <td style="padding:6px 8px;font-weight:600">${p.emoji} ${p.label}</td>
-          <td style="padding:6px 8px">${betStr}</td>
-          <td style="padding:6px 8px">${realStr}</td>
-          <td style="padding:6px 8px;text-align:center;font-weight:700;color:${cor}">${real?pts:'—'}</td>
-          <td style="padding:6px 8px;font-size:.72rem;color:${cor}">${criterio}</td>
-        </tr>`;
+        h+=`<div style="display:grid;grid-template-columns:100px 1fr auto;gap:8px;padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.05);align-items:center;background:${bgRow}">
+          <div style="font-weight:700;font-size:.8rem">${p.emoji} ${posLabel[p.key]}</div>
+          <div>
+            <div style="font-size:.78rem;color:var(--g700);margin-bottom:2px">Palpite: ${betStr}${real?' · Real: '+realStr:''}</div>
+            <div style="font-size:.72rem;color:${cor}">${justificativa}</div>
+          </div>
+          <div style="font-size:1rem;font-weight:800;color:${cor};min-width:32px;text-align:center">${real!==undefined&&real!==null?pts:'—'}</div>
+        </div>`;
       }
       
-      // Inversion bonus rows
-      if(invCV){
-        h+=`<tr style="border-bottom:1px solid rgba(255,255,255,.05);background:rgba(68,138,255,.05)">
-          <td colspan="3" style="padding:6px 8px;font-size:.75rem;color:#82B1FF;font-weight:600">🔄 Bônus inversão Campeão/Vice</td>
-          <td style="padding:6px 8px;text-align:center;font-weight:700;color:#82B1FF">16</td>
-          <td style="padding:6px 8px;font-size:.72rem;color:#82B1FF">Acertou os 2 finalistas</td>
-        </tr>`;
-      }
-      if(invTQ){
-        h+=`<tr style="border-bottom:1px solid rgba(255,255,255,.05);background:rgba(68,138,255,.05)">
-          <td colspan="3" style="padding:6px 8px;font-size:.75rem;color:#82B1FF;font-weight:600">🔄 Bônus inversão 3º/4º</td>
-          <td style="padding:6px 8px;text-align:center;font-weight:700;color:#82B1FF">7</td>
-          <td style="padding:6px 8px;font-size:.72rem;color:#82B1FF">Acertou os 2 da disputa do 3ºL</td>
-        </tr>`;
-      }
-      
-      // Total row
-      h+=`<tr style="background:rgba(255,215,0,.08)">
-        <td colspan="3" style="padding:8px;font-weight:800;color:var(--gold);font-size:.85rem">TOTAL PÓDIO</td>
-        <td style="padding:8px;text-align:center;font-weight:800;color:var(--gold);font-size:1rem">${r.podiumPoints}</td>
-        <td style="padding:8px;font-size:.7rem;color:var(--g400)">de 45 possíveis</td>
-      </tr>`;
-      
-      h+=`</tbody></table></div>`;
+      // Total
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;background:rgba(255,215,0,.08);border-radius:0 0 6px 6px;margin-top:2px">
+        <span style="font-weight:800;color:var(--gold);font-size:.85rem">TOTAL PÓDIO</span>
+        <span style="font-weight:800;color:var(--gold);font-size:1.1rem">${r.podiumPoints} <span style="font-size:.7rem;font-weight:400;color:var(--g400)">de 45 pts</span></span>
+      </div></div>`;
     }
   }
 
