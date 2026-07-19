@@ -906,28 +906,32 @@ function calculateAll(data){
     }
     // Podium scoring (from 2º momento predictions)
     if(r.podium){
-      // Build real podium from results (M104 winner=campeon, M104 loser=vice, M103 winner=terceiro, M103 loser=quarto)
       const r104=data.realMatchResults[104],r103=data.realMatchResults[103];
-      if(r104&&r103){
-        // Determine real final teams from semis results
-        const realPodium={};
-        // We need the team names, not just scores. Use the hardcoded semi teams.
-        const sfTeams={101:{home:'França',away:'Espanha'},102:{home:'Inglaterra',away:'Argentina'}};
-        const qfW=(mn)=>{const r=data.realMatchResults[mn];if(!r)return null;const t=sfTeams[mn];if(!t)return null;if(r.home>r.away)return t.home;if(r.away>r.home)return t.away;if(r.penalty)return r.penalty;return null};
-        const sfL=(mn)=>{const r=data.realMatchResults[mn];if(!r)return null;const t=sfTeams[mn];if(!t)return null;if(r.home>r.away)return t.away;if(r.away>r.home)return t.home;if(r.penalty){return r.penalty===t.home?t.away:t.home}return null};
-        const finalist1=qfW(101),finalist2=qfW(102);
+      const sfTeams={101:{home:'França',away:'Espanha'},102:{home:'Inglaterra',away:'Argentina'}};
+      const qfW=(mn)=>{const res=data.realMatchResults[mn];if(!res)return null;const t=sfTeams[mn];if(!t)return null;if(res.home>res.away)return t.home;if(res.away>res.home)return t.away;if(res.penalty)return res.penalty;return null};
+      const sfL=(mn)=>{const res=data.realMatchResults[mn];if(!res)return null;const t=sfTeams[mn];if(!t)return null;if(res.home>res.away)return t.away;if(res.away>res.home)return t.home;if(res.penalty){return res.penalty===t.home?t.away:t.home}return null};
+      
+      const realPodium={};
+      // 3rd/4th from M103
+      if(r103){
         const third1=sfL(101),third2=sfL(102);
-        if(finalist1&&finalist2){
-          // Final: who won?
-          if(r104.home>r104.away){realPodium.campeon=finalist1;realPodium.vice=finalist2}
-          else if(r104.away>r104.home){realPodium.campeon=finalist2;realPodium.vice=finalist1}
-          else if(r104.penalty){realPodium.campeon=r104.penalty;realPodium.vice=r104.penalty===finalist1?finalist2:finalist1}
-        }
         if(third1&&third2){
           if(r103.home>r103.away){realPodium.terceiro=third1;realPodium.quarto=third2}
           else if(r103.away>r103.home){realPodium.terceiro=third2;realPodium.quarto=third1}
           else if(r103.penalty){realPodium.terceiro=r103.penalty;realPodium.quarto=r103.penalty===third1?third2:third1}
         }
+      }
+      // Champion/Vice from M104
+      if(r104){
+        const finalist1=qfW(101),finalist2=qfW(102);
+        if(finalist1&&finalist2){
+          if(r104.home>r104.away){realPodium.campeon=finalist1;realPodium.vice=finalist2}
+          else if(r104.away>r104.home){realPodium.campeon=finalist2;realPodium.vice=finalist1}
+          else if(r104.penalty){realPodium.campeon=r104.penalty;realPodium.vice=r104.penalty===finalist1?finalist2:finalist1}
+        }
+      }
+      // Score whatever positions are determined
+      if(realPodium.terceiro||realPodium.campeon){
         r.podiumPoints=scorePodium(r.podium,realPodium);
         r.realPodium=realPodium;
       }
@@ -991,20 +995,24 @@ function calculateAll(data){
     let pts=0;const pos=['campeon','vice','terceiro','quarto'];
     const posVal={campeon:20,vice:12,terceiro:8,quarto:5};
     const used={};
-    // Exact matches first
-    for(const p of pos){if(pod[p]&&pod[p]===realPodium[p]){pts+=posVal[p];used[p]=true}}
-    // Inversions: campeon/vice
-    if(!used.campeon&&!used.vice&&pod.campeon&&pod.vice){
+    // Exact matches first (only for determined positions)
+    for(const p of pos){
+      if(!realPodium[p])continue; // position not yet determined
+      if(pod[p]&&pod[p]===realPodium[p]){pts+=posVal[p];used[p]=true}
+    }
+    // Inversions: campeon/vice (only if both determined)
+    if(realPodium.campeon&&realPodium.vice&&!used.campeon&&!used.vice&&pod.campeon&&pod.vice){
       if(pod.campeon===realPodium.vice&&pod.vice===realPodium.campeon){pts+=16;used.campeon=true;used.vice=true}
     }
-    // Inversions: terceiro/quarto
-    if(!used.terceiro&&!used.quarto&&pod.terceiro&&pod.quarto){
+    // Inversions: terceiro/quarto (only if both determined)
+    if(realPodium.terceiro&&realPodium.quarto&&!used.terceiro&&!used.quarto&&pod.terceiro&&pod.quarto){
       if(pod.terceiro===realPodium.quarto&&pod.quarto===realPodium.terceiro){pts+=7;used.terceiro=true;used.quarto=true}
     }
-    // Top 4 generic (2 pts each, only if not already scored)
+    // Top 4 generic (2 pts each, only for determined positions)
     const realTop4=[realPodium.campeon,realPodium.vice,realPodium.terceiro,realPodium.quarto].filter(Boolean);
     for(const p of pos){
       if(used[p])continue;
+      if(!realPodium[p]&&!realTop4.length)continue; // can't evaluate yet
       if(pod[p]&&realTop4.includes(pod[p])){pts+=2;used[p]=true}
     }
     return pts;
