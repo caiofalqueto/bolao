@@ -763,9 +763,12 @@ function scoreMatch(bh,ba,rh,ra){
   return{points:0,type:'wrong'};
 }
 
+const TEAM_ALIASES={'Estados Unidos':'EUA','EUA':'EUA','Países Baixos':'Holanda','Holanda':'Holanda','Bósnia e Herzegovina':'Bósnia','Bósnia':'Bósnia','RD Congo':'Congo','Congo':'Congo'};
+function normTeam(t){if(!t)return'';const s=t.trim();return TEAM_ALIASES[s]||s}
+
 function scoreGroup(b1,b2,r1,r2){
   if(!r1||!r2||!b1||!b2)return null;
-  const B1=b1.trim(),B2=b2.trim(),R1=r1.trim(),R2=r2.trim();
+  const B1=normTeam(b1),B2=normTeam(b2),R1=normTeam(r1),R2=normTeam(r2);
   if(B1===R1&&B2===R2)return{points:3,type:'exact'};
   const bs=new Set([B1,B2]),rs=new Set([R1,R2]);
   const ov=[...bs].filter(x=>rs.has(x)).length;
